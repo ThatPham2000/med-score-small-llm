@@ -1,10 +1,11 @@
 from typing import List, Dict
 
-from llm import LLM
 import ollama
 
+from llm import LLM
 
-class OllamaLLM(LLM):
+
+class LLMOllama(LLM):
     def __init__(self, model_name: str, ollama_client: ollama.Client = None):
         super().__init__(model_name)
         self.ollama_client = ollama_client
