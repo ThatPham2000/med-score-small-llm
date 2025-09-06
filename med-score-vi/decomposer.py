@@ -1,14 +1,78 @@
-from typing import Optional
+import asyncio
+from typing import Optional, List, Dict, Any
+
+import backoff
+import requests
+from tqdm import tqdm
 
 from llm import LLM
+from utils import chunker, process_claim
 
 
 class Decomposer(object):
     def __init__(
             self,
             llm: LLM = None,
+            random_state: int = 42,
+            batch_size: int = 32,
     ):
         self.llm = llm
+        self.random_state = random_state
+        self.batch_size = batch_size
+
+    def do_decompose(self, decomposition_input: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        messages = []
+        for d in decomposition_input:
+            formatted_input = self.format_input(d['context'], d['sentence'])
+            if self.get_system_prompt():
+                messages.append([
+                    {"role": "system", "content": self.get_system_prompt},
+                    {"role": "user", "content": formatted_input}
+                ])
+            else:
+                messages.append([
+                    {"role": "user", "content": formatted_input}
+                ])
+
+        # messages = [messages[0], messages[1]]
+        # Async calls for batch_size items
+        all_completions = []
+        n_iter = len(messages) // self.batch_size
+        for batch in tqdm(chunker(messages, self.batch_size), desc="Decompose", total=n_iter, ncols=0):
+            completions = asyncio.run(self.batch_response(batch))
+            all_completions.extend(completions)
+
+        # Format claims
+        decompositions = self.format_completions(decomposition_input, self.llm.normalize_llm_response(all_completions))
+        return decompositions
+
+    def format_completions(self, decomp_input: List[Dict[str, Any]], completions: List[str]) -> List[Dict[str, Any]]:
+        decompositions = []
+        for d_input, completion in zip(decomp_input, completions):
+            claim_list = completion.split("\n")
+            claim_list = process_claim(claim_list)
+            for idx, claim in enumerate(claim_list):
+                decomp = {k: v for k, v in d_input.items() if k != "context"}
+                decomp["claim"] = claim
+                decomp["claim_id"] = idx
+                decompositions.append(decomp)
+            if not claim_list:
+                decomp = {k: v for k, v in d_input.items() if k != "context"}
+                decomp["claim"] = None
+                decompositions.append(decomp)
+        return decompositions
+
+    @backoff.on_exception(
+        backoff.expo,
+        requests.exceptions.RequestException,
+        max_time=60
+    )
+    async def batch_response(self, batch: List[List[Dict[str, str]]]) -> List[str]:
+        async_responses = [
+            self.llm.generate(messages=x)
+            for x in batch
+        ]
+        return await asyncio.gather(*async_responses)
 
     def get_system_prompt(self) -> Optional[str]:
         raise NotImplementedError

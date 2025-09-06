@@ -1,31 +1,87 @@
 import json
 import os
 from argparse import ArgumentParser
+from typing import Optional, List, Dict, Any
 
 import jsonlines
+import ollama
 
-from exceptions import InvalidArgumentException
+from decomposer_fact_score import DecomposerFactScore
+from decomposer_med_score import DecomposerMedScore
+from exceptions import InvalidArgumentException, IllegalArgumentException
+from llm_ollama import LLMOllama
+from utils import parse_sentences
+
+
+def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
+    llm_provider = llm_provider.lower()
+    if llm_provider == "ollama":
+        if server is None:
+            return LLMOllama(model_name=model_name)
+        return LLMOllama(
+            model_name=model_name,
+            ollama_client=ollama.AsyncClient(host=server, verify=False)
+        )
+
+    if llm_provider == "openapi":
+        pass
+    raise IllegalArgumentException(f"Unknown LLM provider: {llm_provider}")
+
+
+def initialize_decomposition(
+        decomposition_mode: str,
+        decomposition_llm_provider: str,
+        decomposition_model_name: str,
+        decomposition_server: str,
+):
+    mode = decomposition_mode.lower()
+    llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
+    if mode == "medscore":
+        return DecomposerMedScore(llm)
+    if mode == "factscore":
+        return DecomposerFactScore(llm)
+    raise IllegalArgumentException(f"Unknown decomposition mode: {mode}")
 
 
 class MedScoreVi(object):
     def __init__(
             self,
-            model_name_decomposition: str,
-            server_decomposition: str,
-            model_name_verification: str,
-            server_verification: str,
-            verification_mode: str,
             decomposition_mode: str,
-            response_key: str,
-            decomposition_prompt_path: str = None,
-            provided_evidence_path: str = None
+            decomposition_llm_provider: str,
+            decomposition_model_name: str,
+            decomposition_server: str,
+            decomposition_prompt_path: str,
+            verification_mode: str,
+            verification_llm_provider: str,
+            verification_model_name: str,
+            verification_server: str,
+            provided_evidence_path: str,
     ):
-        self.response_key = response_key
-        self.decomposition_prompt_path = decomposition_prompt_path
-        self.provided_evidence_path = provided_evidence_path
-        # Initialize decomposer and verifier here
-        # self.decomposer = ...
-        # self.verifier = ...
+        self.decomposer = initialize_decomposition(
+            decomposition_mode,
+            decomposition_llm_provider,
+            decomposition_model_name,
+            decomposition_server,
+        )
+
+    def decompose(
+            self,
+            dataset: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        # Split each response
+        decomposer_input = []
+        for item in dataset:
+            sentences = parse_sentences(item['response'])
+            for idx, sentence in enumerate(sentences):
+                decomposer_input.append({
+                    "id": item["id"],
+                    "sentence_id": idx,
+                    "context": item['response'],
+                    "sentence": sentence['text'].strip(),
+                })
+
+        decompositions = self.decomposer.do_decompose(decomposer_input)
+        return decompositions
 
 
 def parse_args():
@@ -79,21 +135,20 @@ if __name__ == '__main__':
     else:
         provided_evidence = None
 
-    if args.decomposition_mode == "custom" and not args.decomp_prompt_path:
+    if args.decomposition_mode == "custom" and not args.decomposition_prompt_path:
         raise InvalidArgumentException("Must provide a decomposition prompt path with CustomDecomposer")
 
-    # Initialize MedScore
     scorer = MedScoreVi(
-        model_name_decomposition=args.decomposition_model_name,
-        server_decomposition=args.server_decomposition,
-        model_name_verification=args.model_name_verification,
-        server_verification=args.server_verification,
-        verification_mode=args.verification_mode,
         decomposition_mode=args.decomposition_mode,
-        response_key=args.response_key,
-        provided_evidence=provided_evidence,
-        custom_decomposition_prompt_path=args.decomp_prompt_path
-    )
+        decomposition_llm_provider=args.decomposition_llm_provider,
+        decomposition_model_name=args.decomposition_model_name,
+        decomposition_server=args.decomposition_server,
+        decomposition_prompt_path=args.decomposition_prompt_path,
+        verification_mode=args.verification_mode,
+        verification_llm_provider=args.verification_llm_provider,
+        verification_model_name=args.verification_model_name,
+        verification_server=args.verification_server,
+        provided_evidence_path=args.provided_evidence_path)
 
     # Process decomposition
     if not args.verify_only:
@@ -108,6 +163,6 @@ if __name__ == '__main__':
             decompositions = [item for item in reader.iter()]
 
     # Process verification
-    verifications = scorer.verify(decompositions)
-    with jsonlines.open(verification_output_file, 'w') as writer:
-        writer.write_all(verifications)
+    # verifications = scorer.verify(decompositions)
+    # with jsonlines.open(verification_output_file, 'w') as writer:
+    #     writer.write_all(verifications)

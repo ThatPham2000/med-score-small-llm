@@ -1,2 +1,6 @@
 ollama
 jsonlines
+spacy
+backoff
+tqdm
+requests

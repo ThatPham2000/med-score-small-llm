@@ -6,13 +6,13 @@ from llm import LLM
 
 
 class LLMOllama(LLM):
-    def __init__(self, model_name: str, ollama_client: ollama.Client = None):
+    def __init__(self, model_name: str, ollama_client: ollama.AsyncClient = None):
         super().__init__(model_name)
         self.ollama_client = ollama_client
 
-    def generate(self, messages: List[Dict[str, str]]) -> str:
+    async def generate(self, messages: List[Dict[str, str]]):
         if self.ollama_client is None:
-            completion = ollama.chat(
+            completion = ollama.AsyncClient.chat(
                 model=self.model_name,
                 messages=messages,
                 options={
@@ -20,7 +20,7 @@ class LLMOllama(LLM):
                     "top_p": 0.1
                 }
             )
-            return completion.message.content
+            return completion
         completion = self.ollama_client.chat(
             model=self.model_name,
             messages=messages,
@@ -29,4 +29,7 @@ class LLMOllama(LLM):
                 "top_p": 0.1
             }
         )
-        return completion.message.content
+        return completion
+
+    def normalize_llm_response(self, completions) -> List[str]:
+        return [c.message.content for c in completions]
