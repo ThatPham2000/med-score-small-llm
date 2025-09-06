@@ -75,7 +75,7 @@ class Decomposer(object):
         return await asyncio.gather(*async_responses)
 
     def get_system_prompt(self) -> Optional[str]:
-        raise NotImplementedError
+        return None
 
     def format_input(self, context: str, sentence: str) -> str:
         raise NotImplementedError
