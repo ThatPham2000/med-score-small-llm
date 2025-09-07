@@ -12,7 +12,7 @@ class LLMOllama(LLM):
 
     async def generate(self, messages: List[Dict[str, str]]):
         if self.ollama_client is None:
-            completion = ollama.AsyncClient.chat(
+            return ollama.AsyncClient.chat(
                 model=self.model_name,
                 messages=messages,
                 options={
@@ -20,7 +20,6 @@ class LLMOllama(LLM):
                     "top_p": 0.1
                 }
             )
-            return completion
         completion = self.ollama_client.chat(
             model=self.model_name,
             messages=messages,

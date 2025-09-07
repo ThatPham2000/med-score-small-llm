@@ -50,12 +50,12 @@ class MedScoreVi(object):
             decomposition_llm_provider: str,
             decomposition_model_name: str,
             decomposition_server: str,
-            decomposition_prompt_path: str,
+            decomposition_prompt_path: None,
             verification_mode: str,
             verification_llm_provider: str,
             verification_model_name: str,
             verification_server: str,
-            provided_evidence_path: str,
+            provided_evidence_path: None,
     ):
         self.decomposer = initialize_decomposition(
             decomposition_mode,
@@ -98,14 +98,14 @@ def parse_args():
                         default="medscore")
     parser.add_argument("--decomposition_llm_provider", type=str, choices=["ollama", "openapi"], default="ollama")
     parser.add_argument("--decomposition_model_name", type=str, default="gpt-oss:20b")
-    parser.add_argument("--decomposition_server", type=str, default="https://api.openai.com/v1")
+    parser.add_argument("--decomposition_server", type=str, default=None)
     parser.add_argument("--decomposition_prompt_path", type=str, default=None)
 
     # Verification
     parser.add_argument("--verification_mode", type=str, choices=["internal", "provided"], default="internal")
     parser.add_argument("--verification_llm_provider", type=str, choices=["ollama", "openapi"], default="ollama")
     parser.add_argument("--verification_model_name", type=str, default="gpt-oss:20b")
-    parser.add_argument("--verification_server", type=str, default="https://api.openai.com/v1")
+    parser.add_argument("--verification_server", type=str, default=None)
     parser.add_argument("--provided_evidence_path", type=str, default=None)
 
     return parser.parse_args()
@@ -122,7 +122,7 @@ if __name__ == '__main__':
         dataset = [item for item in reader.iter()]
     # dataset = [dataset[0]]
 
-    decomposition_output_file = os.path.join(args.output_dir, "decompositions.jsonl")
+    decomposition_output_file = os.path.join(args.output_dir, "decompositions_dmm.jsonl")
     verification_output_file = os.path.join(args.output_dir, "verifications.jsonl")
     output_file = os.path.join(args.output_dir, "med_score_vi_output.jsonl")
 

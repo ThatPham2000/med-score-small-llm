@@ -2,6 +2,7 @@ import asyncio
 from typing import Optional, List, Dict, Any
 
 import backoff
+import ollama
 import requests
 from tqdm import tqdm
 
@@ -24,9 +25,10 @@ class Decomposer(object):
         messages = []
         for d in decomposition_input:
             formatted_input = self.format_input(d['context'], d['sentence'])
-            if self.get_system_prompt():
+            system_prompt = self.get_system_prompt()
+            if system_prompt:
                 messages.append([
-                    {"role": "system", "content": self.get_system_prompt},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": formatted_input}
                 ])
             else:
@@ -69,7 +71,15 @@ class Decomposer(object):
     )
     async def batch_response(self, batch: List[List[Dict[str, str]]]) -> List[str]:
         async_responses = [
-            self.llm.generate(messages=x)
+            # self.llm.generate(messages=x)
+            ollama.AsyncClient().chat(
+                model=self.llm.model_name,
+                messages=x,
+                options={
+                    "temperature": 0.3,
+                    "top_p": 0.1
+                }
+            )
             for x in batch
         ]
         return await asyncio.gather(*async_responses)
