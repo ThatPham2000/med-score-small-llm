@@ -19,10 +19,11 @@ class Decomposer(object):
         self.batch_size = batch_size
 
     def do_decompose(self, decomposition_input: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        system_prompt = self.get_system_prompt()
+
         messages = []
         for d in decomposition_input:
             formatted_input = self.format_input(d['context'], d['sentence'])
-            system_prompt = self.get_system_prompt()
             if system_prompt:
                 messages.append([
                     {"role": "system", "content": system_prompt},
