@@ -1,10 +1,13 @@
 import asyncio
 from typing import Optional, List, Dict, Any
 
+import nest_asyncio
 from tqdm import tqdm
 
 from llm import LLM
 from utils import chunker, process_claim
+
+nest_asyncio.apply()
 
 
 class Decomposer(object):

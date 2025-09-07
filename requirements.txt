@@ -4,3 +4,4 @@ spacy
 backoff
 tqdm
 requests
+nest_asyncio

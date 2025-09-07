@@ -2,10 +2,13 @@ import asyncio
 from typing import List, Dict
 
 import backoff
+import nest_asyncio
 import ollama
 import requests
 
 from llm import LLM
+
+nest_asyncio.apply()
 
 
 class LLMOllama(LLM):
