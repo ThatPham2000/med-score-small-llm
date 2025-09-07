@@ -1,9 +1,6 @@
 import asyncio
 from typing import Optional, List, Dict, Any
 
-import backoff
-import ollama
-import requests
 from tqdm import tqdm
 
 from llm import LLM
@@ -41,7 +38,7 @@ class Decomposer(object):
         all_completions = []
         n_iter = len(messages) // self.batch_size
         for batch in tqdm(chunker(messages, self.batch_size), desc="Decompose", total=n_iter, ncols=0):
-            completions = asyncio.run(self.batch_response(batch))
+            completions = asyncio.run(self.llm.batch_response(batch))
             all_completions.extend(completions)
 
         # Format claims
@@ -63,26 +60,6 @@ class Decomposer(object):
                 decomp["claim"] = None
                 decompositions.append(decomp)
         return decompositions
-
-    @backoff.on_exception(
-        backoff.expo,
-        requests.exceptions.RequestException,
-        max_time=60
-    )
-    async def batch_response(self, batch: List[List[Dict[str, str]]]) -> List[str]:
-        async_responses = [
-            # self.llm.generate(messages=x)
-            ollama.AsyncClient().chat(
-                model=self.llm.model_name,
-                messages=x,
-                options={
-                    "temperature": 0.3,
-                    "top_p": 0.1
-                }
-            )
-            for x in batch
-        ]
-        return await asyncio.gather(*async_responses)
 
     def get_system_prompt(self) -> Optional[str]:
         return None

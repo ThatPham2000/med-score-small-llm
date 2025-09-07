@@ -20,7 +20,7 @@ def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
             return LLMOllama(model_name=model_name)
         return LLMOllama(
             model_name=model_name,
-            ollama_client=ollama.AsyncClient(host=server, verify=False)
+            ollama_async_client=ollama.AsyncClient(host=server, verify=False)
         )
 
     if llm_provider == "openapi":
