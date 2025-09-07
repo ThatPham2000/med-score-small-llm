@@ -41,7 +41,7 @@ class Decomposer(object):
         # Async calls for batch_size items
         all_completions = []
         n_iter = len(messages) // self.batch_size
-        for batch in tqdm(chunker(messages, self.batch_size), desc="Decompose", total=n_iter, ncols=0):
+        for batch in tqdm(chunker(messages, self.batch_size), desc="Decomposer process", total=n_iter, ncols=0):
             completions = asyncio.run(self.llm.batch_response(batch))
             all_completions.extend(completions)
 

@@ -11,6 +11,8 @@ from decomposer_med_score import DecomposerMedScore
 from exceptions import InvalidArgumentException, IllegalArgumentException
 from llm_ollama import LLMOllama
 from utils import parse_sentences
+from verifier_internal import VerifierInternal
+from verifier_provided_evidence import VerifierProvidedEvidence
 
 
 def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
@@ -28,11 +30,11 @@ def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
     raise IllegalArgumentException(f"Unknown LLM provider: {llm_provider}")
 
 
-def initialize_decomposition(
+def initialize_decomposer(
         decomposition_mode: str,
         decomposition_llm_provider: str,
         decomposition_model_name: str,
-        decomposition_server: str,
+        decomposition_server: Optional[str],
 ):
     mode = decomposition_mode.lower()
     llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
@@ -43,25 +45,49 @@ def initialize_decomposition(
     raise IllegalArgumentException(f"Unknown decomposition mode: {mode}")
 
 
+def initialize_verifier(
+        verification_mode: str,
+        verification_llm_provider: str,
+        verification_model_name: str,
+        verification_server: Optional[str],
+        provided_evidence: Dict[str, str],
+):
+    mode = verification_mode.lower()
+    llm = initialize_llm(verification_llm_provider, verification_model_name, verification_server)
+    if mode == "internal":
+        return VerifierInternal(llm)
+    if mode == "provided":
+        return VerifierProvidedEvidence(provided_evidence, llm)
+    raise IllegalArgumentException(f"Unknown verification mode: {mode}")
+
+
 class MedScoreVi(object):
     def __init__(
             self,
             decomposition_mode: str,
             decomposition_llm_provider: str,
             decomposition_model_name: str,
-            decomposition_server: str,
-            decomposition_prompt_path: None,
+            decomposition_server: Optional[str],
+            decomposition_prompt_path: Optional[str],
             verification_mode: str,
             verification_llm_provider: str,
             verification_model_name: str,
-            verification_server: str,
-            provided_evidence_path: None,
+            verification_server: Optional[str],
+            provided_evidence: Dict[str, str],
     ):
-        self.decomposer = initialize_decomposition(
+        self.decomposer = initialize_decomposer(
             decomposition_mode,
             decomposition_llm_provider,
             decomposition_model_name,
             decomposition_server,
+        )
+
+        self.verifier = initialize_verifier(
+            verification_mode,
+            verification_llm_provider,
+            verification_model_name,
+            verification_server,
+            provided_evidence,
         )
 
     def decompose(
@@ -82,6 +108,11 @@ class MedScoreVi(object):
 
         decompositions = self.decomposer.do_decompose(decomposer_input)
         return decompositions
+
+    def verify(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        non_empty_decompositions = [d for d in decompositions if d["claim"] is not None]
+        verifier_output = self.verifier.do_verify(non_empty_decompositions)
+        return verifier_output
 
 
 def parse_args():
@@ -122,8 +153,8 @@ if __name__ == '__main__':
         dataset = [item for item in reader.iter()]
     # dataset = [dataset[0]]
 
-    decomposition_output_file = os.path.join(args.output_dir, "decompositions_dmm.jsonl")
-    verification_output_file = os.path.join(args.output_dir, "verifications.jsonl")
+    decomposition_output_file = os.path.join(args.output_dir, "decompositions.jsonl")
+    verification_output_file = os.path.join(args.output_dir, "verifications_evidence.jsonl")
     output_file = os.path.join(args.output_dir, "med_score_vi_output.jsonl")
 
     if args.verification_mode == "provided":
@@ -148,9 +179,10 @@ if __name__ == '__main__':
         verification_llm_provider=args.verification_llm_provider,
         verification_model_name=args.verification_model_name,
         verification_server=args.verification_server,
-        provided_evidence_path=args.provided_evidence_path)
+        provided_evidence=provided_evidence)
 
     # Process decomposition
+    decompositions = []
     if not args.verify_only:
         decompositions = scorer.decompose(dataset)
         with jsonlines.open(decomposition_output_file, 'w') as writer:
@@ -163,6 +195,6 @@ if __name__ == '__main__':
             decompositions = [item for item in reader.iter()]
 
     # Process verification
-    # verifications = scorer.verify(decompositions)
-    # with jsonlines.open(verification_output_file, 'w') as writer:
-    #     writer.write_all(verifications)
+    verifications = scorer.verify(decompositions)
+    with jsonlines.open(verification_output_file, 'w') as writer:
+        writer.write_all(verifications)
