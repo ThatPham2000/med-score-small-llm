@@ -23,7 +23,15 @@ class LLMOllama(LLM):
     )
     async def batch_response(self, batch: List[List[Dict[str, str]]]) -> List[str]:
         async_responses = [
-            ollama.AsyncClient().chat(
+            self.ollama_async_client.chat(
+                model=self.model_name,
+                messages=x,
+                options={
+                    "temperature": 0.3,
+                    "top_p": 0.1
+                }
+            ) if self.ollama_async_client
+            else ollama.AsyncClient().chat(
                 model=self.model_name,
                 messages=x,
                 options={
