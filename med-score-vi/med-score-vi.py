@@ -198,3 +198,32 @@ if __name__ == '__main__':
     verifications = scorer.verify(decompositions)
     with jsonlines.open(verification_output_file, 'w') as writer:
         writer.write_all(verifications)
+
+    # Combine
+    combined_output = {
+        d["id"]: {
+            "id": d["id"],
+            "claims": []
+        } for d in decompositions
+    }
+    for verification in verifications:
+        claim_info = {
+            k: v for k, v in verification.items() if k not in {"id", "sentence_id", "claim_id"}
+        }
+        combined_output[verification['id']]['claims'].append(claim_info)
+
+    # Aggregate scores
+    for idx in combined_output:
+        claim_scores = [claim['score'] for claim in combined_output[idx]['claims']]
+        if len(claim_scores) == 0:
+            combined_output[idx]["score"] = None
+        else:
+            combined_output[idx]["score"] = sum(claim_scores) / len(claim_scores)
+
+    combined_output = [v for k, v in combined_output.items()]
+    with jsonlines.open(output_file, 'w') as writer:
+        writer.write_all(combined_output)
+
+    scores = [item['score'] for item in combined_output if item['score'] is not None]
+    final_score = sum(scores) / len(scores) if scores else None
+    print(f"Final score: {final_score}")
