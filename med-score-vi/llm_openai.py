@@ -20,10 +20,10 @@ class LLMOpenAI(LLM):
         self.agent = partial(
             self.client.chat.completions.create,
             model=self.model_name,
-            seed=42,
-            temperature=0.0,
-            top_p=1.0,
-            max_tokens=256
+            seed=self.seed,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            max_tokens=self.max_tokens,
         )
 
     @backoff.on_exception(

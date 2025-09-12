@@ -2,8 +2,8 @@ import ast
 from typing import List, Dict, Any
 
 from decomposer import Decomposer
-from prompts import DND_PROMPT
 from llm import LLM
+from prompts import DND_PROMPT
 
 
 class DecomposeDnDScore(Decomposer):
@@ -13,15 +13,10 @@ class DecomposeDnDScore(Decomposer):
     ):
         super().__init__(llm=llm)
 
-        # Override self.agent to match settings from DnDScore
-        # self.agent = partial(
-        #     self.client.chat.completions.create,
-        #     model=self.model_name,
-        #     seed=self.random_state,
-        #     temperature=0.75,
-        #     top_p=1.0,
-        #     max_tokens=2048
-        # )
+        # Override llm to match settings from DnDScore
+        self.llm.temperature = 0.75
+        self.llm.top_p = 1.0
+        self.llm.max_tokens = 2048
 
     def format_input(self, context: str, sentence: str) -> str:
         return DND_PROMPT.replace("[paragraph]", context).replace("[sentence]", sentence)
