@@ -26,17 +26,20 @@ class LLMOllama(LLM):
             self.ollama_async_client.chat(
                 model=self.model_name,
                 messages=x,
+                # https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
                 options={
-                    "temperature": 0.3,
-                    "top_p": 0.1
+                    "seed": 42,
+                    "temperature": 0.0,
+                    "top_p": 1.0
                 }
             ) if self.ollama_async_client
             else ollama.AsyncClient().chat(
                 model=self.model_name,
                 messages=x,
                 options={
-                    "temperature": 0.3,
-                    "top_p": 0.1
+                    "seed": 42,
+                    "temperature": 0.0,
+                    "top_p": 1.0
                 }
             )
             for x in batch

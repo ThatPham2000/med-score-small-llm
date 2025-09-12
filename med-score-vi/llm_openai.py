@@ -16,6 +16,7 @@ class LLMOpenAI(LLM):
     def __init__(self, model_name: str, server_path: str):
         super().__init__(model_name)
         self.client = AsyncOpenAI(base_url=server_path)
+        # https://platform.openai.com/docs/api-reference/chat/create
         self.agent = partial(
             self.client.chat.completions.create,
             model=self.model_name,
