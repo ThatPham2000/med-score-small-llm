@@ -10,6 +10,7 @@ from decomposer_fact_score import DecomposerFactScore
 from decomposer_med_score import DecomposerMedScore
 from exceptions import InvalidArgumentException, IllegalArgumentException
 from llm_ollama import LLMOllama
+from llm_openai import LLMOpenAI
 from utils import parse_sentences
 from verifier_internal import VerifierInternal
 from verifier_provided_evidence import VerifierProvidedEvidence
@@ -26,7 +27,10 @@ def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
         )
 
     if llm_provider == "openapi":
-        pass
+        if server is None:
+            raise InvalidArgumentException("Server URL must be provided for OpenAPI LLM provider")
+        return LLMOpenAI(model_name=model_name, server_path=server)
+
     raise IllegalArgumentException(f"Unknown LLM provider: {llm_provider}")
 
 
