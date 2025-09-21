@@ -113,6 +113,7 @@ def task_chaining(context, sentence):
         print(f"Original: {sentence} -> Rewritten: {result3.message.content}")
 
 
+# 20b model => OK
 def guided_reasoning_chain_for_claim_extraction(context, sentence):
     system_prompt = """You are a medical expert in evaluating how factual a medical sentence is. Your task is to break down a sentence into a list of verifiable claims by following a strict, step-by-step process.
 
@@ -155,7 +156,63 @@ Finally, compile the atomic facts from Step 3 into a clean list under the "Facts
 **Facts:**
 **[SLM WRITES THE FINAL, CLEANED LIST HERE]**"""
 
-    result = ollama.chat(model='llama3.1:8b', messages=[
+    result = ollama.chat(model='gpt-oss:20b', messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
+    ])
+    print(f"Result: {result.message.content}")
+
+
+# good for 11b, 8b models and above
+# gemma3:27b, gpt-oss:20b, llama3.1:8b, gemma3:12b
+def guided_reasoning_chain_for_claim_extraction2(context, sentence):
+    system_prompt = """You are a medical fact extraction expert. Your final output must be ONLY a list of verifiable claims, each starting with a "-", or the single line "- No verifiable claim".
+
+To arrive at your answer, you must follow these steps in your internal reasoning process:
+
+**Internal Reasoning Steps (Do not show these in your output):**
+1.  **Verifiability Analysis:** First, analyze the sentence. Does it contain objective, verifiable information?
+2.  **Conclusion for Non-Verifiable Sentences:** If the sentence contains no verifiable information (e.g., it's a question, command, or pleasantry), your final output is simply "- No verifiable claim".
+3.  **Specification & Transformation:** If there are verifiable facts, rewrite them to be self-contained. Resolve vague terms (like "this" or "those substances") using the context. Generalize personal entities ("you," "your doctor") to objective terms ("a person," "doctors").
+4.  **Atomization:** Break the transformed statements into the smallest possible, independent facts.
+5.  **Final Formatting:** List each atomic fact, ensuring each line starts with a "-".
+
+---
+**Context:** {context_from_user}
+**Sentence:** {sentence_from_user}
+
+**Final Output:**"""
+
+    result = ollama.chat(model='gemma3:27b', messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
+    ])
+    print(f"Result: {result.message.content}")
+
+def guided_reasoning_chain_for_claim_extraction3(context, sentence):
+    system_prompt = """You are a medical fact extraction expert. Your final output must be ONLY a list of verifiable claims, each starting with a "-", or the single line "- No verifiable claim".
+
+To arrive at your answer, you must follow these steps in your internal reasoning process:
+
+**Internal Reasoning Steps (Do not show these in your output):**
+1.  **Verifiability Analysis:** First, analyze the sentence for objective, verifiable medical or scientific information that could be checked against a source like Wikipedia or PubMed.
+
+2.  **Identify Non-Verifiable Content:** Conclude that there is "No verifiable claim" if the sentence is primarily one of the following:
+    * **A personal narrative or meta-communication:** Any statement describing who spoke, said, or did something (e.g., "I spoke to your doctor," "The doctor mentioned that," "They wanted to address..."). Focus on the medical content, not the act of communication.
+    * **A subjective experience, suggestion, command, or question.**
+    * **A social pleasantry** (e.g., "we'll be happy to help").
+
+3.  **Extraction and Specification:** If, and only if, the sentence passes the checks above, proceed to extract the facts. Resolve vague terms and generalize personal entities.
+
+4.  **Atomization and Formatting:** Break down the facts into the smallest possible claims, each starting with a "-".
+
+---
+**Context:** {context_from_user}
+**Sentence:** {sentence_from_user}
+
+**Final Output:**"""
+
+    result = ollama.chat(model='gemma3:12b', messages=[
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
     ])
@@ -171,7 +228,7 @@ if __name__ == '__main__':
     context = "I spoke to your doctor and they wanted to address your concerns regarding the leakage you experienced after your bowel surgery in 2013. According to them, it is possible for an abnormal connection to form between your bowel and your bladder or vagina, which is known as a fistula. This could potentially cause the leakage of substances from your bowel into your urinary tract or vagina.\n\nYour doctor recommends reviewing the notes from your second surgery to understand the nature of the repairs that were performed. This information may help clarify what happened in your specific case.\n\nRegarding your concerns about the quality of care you received from your initial surgeon, your doctor advises that medical malpractice is a complex issue that depends on many factors, including the specific circumstances of your case and the laws in your location. If you're interested in exploring this further, they recommend consulting with a lawyer who can provide guidance on whether you have a valid case.\n\nPlease let us know if you have any further questions or concerns, and we'll be happy to help."
     sentence = "Please let us know if you have any further questions or concerns, and we'll be happy to help."
 
-    guided_reasoning_chain_for_claim_extraction(context, sentence)
+    guided_reasoning_chain_for_claim_extraction3(context, sentence)
 
 
 
