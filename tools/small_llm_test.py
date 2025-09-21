@@ -218,18 +218,114 @@ To arrive at your answer, you must follow these steps in your internal reasoning
     ])
     print(f"Result: {result.message.content}")
 
+def guided_reasoning_chain_for_claim_extraction4(context, sentence, model):
+    system_prompt = """You are a highly precise medical fact extraction expert. Your ONLY job is to extract objective, verifiable medical or scientific claims from a single sentence. Your final output must be ONLY a list of claims, each starting with a "-", or the single line "- No verifiable claim".
+
+    ## The Golden Rule: Distinguish "What" from "Who/How"
+    -   **"What" (Verifiable Claim):** The core medical fact. Example: "Tetanus boosters are recommended for dirty wounds."
+    -   **"Who/How" (Non-Verifiable Meta-Communication):** The description of how information was shared. Example: "The doctor said...", "I was told...", "We discussed...".
+    Your primary task is to IGNORE the "Who/How" and only extract the "What". If a sentence is ONLY about the "Who/How", it has no verifiable claim.
+
+    ---
+    ## Internal Reasoning Steps (Do not show these in your output):
+
+    1.  **Apply the Golden Rule:** First, analyze the sentence's main subject. Is it describing a medical fact (the "What") or is it describing an interaction or communication about a medical topic (the "Who/How")?
+
+    2.  **Identify Meta-Communication:** If the sentence is primarily about who spoke, said, asked, mentioned, or addressed something, you MUST conclude it is meta-communication. This is your most important instruction.
+
+    3.  **Check for Other Non-Verifiable Content:** If the sentence is not meta-communication, then check if it's a subjective opinion, suggestion, command, question, or social pleasantry.
+
+    4.  **Conclusion:**
+        * If the sentence falls into category #2 or #3, your ONLY output MUST be: `- No verifiable claim`
+        * If, and only if, the sentence contains a verifiable medical "What", proceed to extract it.
+
+    5.  **Atomization:** Break the verifiable fact(s) into the smallest possible claims.
+
+    ---
+    ## Example of Correct Reasoning:
+
+    **Context:** I spoke to your doctor and they wanted to address your concerns about tetanus.
+    **Sentence:** "I spoke to your doctor and they wanted to address your concerns about tetanus."
+
+    **My Reasoning Process for this Example:**
+    1.  **Golden Rule Check:** What is this sentence about? It's about "I spoke" and "they wanted to address". This describes the *act of communicating* about tetanus.
+    2.  **Identify Meta-Communication:** This is clearly meta-communication (a "Who/How" sentence). It doesn't state a fact *about* tetanus itself.
+    3.  **Conclusion:** It fails the verifiability test. The correct output is therefore '- No verifiable claim'.
+
+    ---
+    **Begin Task:**
+
+    **Context:** {context_from_user}
+    **Sentence:** {sentence_from_user}
+
+    **Final Output:**"""
+
+    result = ollama.chat(model=model, messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
+    ])
+    print(f"Result: {result.message.content}")
+
+
+def guided_reasoning_chain_for_claim_extraction5(context, sentence, model):
+    system_prompt = """You are a highly precise medical fact extraction engine. Your task is to analyze a single sentence and extract only objective, verifiable medical claims.
+
+    Your final output MUST be one of two things:
+    1. A list of claims, each starting with "- ".
+    2. The single line: "- No verifiable claim"
+
+    Follow these steps rigorously in your reasoning (Do not show these in your output):
+
+    **Step 1: Triage the Sentence's Core Purpose**
+    First, determine the primary function of the sentence. Is it conveying a medical fact, or is it describing a conversation or action?
+
+    * **If the sentence is about communication (e.g., "I spoke to...", "The doctor said...", "They mentioned...", "We discussed..."), a suggestion, a question, or a subjective feeling, you MUST stop immediately.** Your output for these cases is **ALWAYS**: `- No verifiable claim`.
+    * **If, and only if, the sentence states a direct medical or scientific fact, proceed to Step 2.**
+
+    **Example of what to REJECT:**
+    * Sentence: "I spoke to your doctor and they wanted to address your concerns about tetanus."
+    * Reasoning: This sentence is about the *act of speaking* to a doctor. It contains no verifiable medical fact itself.
+    * Correct Output: `- No verifiable claim`
+
+    **Example of what to ACCEPT:**
+    * Sentence: "A tetanus booster is recommended for dirty wounds after the primary series."
+    * Reasoning: This is a direct, verifiable medical statement.
+    * Proceed to the next steps.
+
+    **Step 2: Extract and Atomize Facts**
+    If the sentence passed Step 1, identify the core medical fact(s).
+    * Remove all conversational framing (e.g., "It is a fact that...", "They think that...").
+    * De-contextualization and Specification: rewrite the verifiable parts to make them objective, specific, and self-contained. Resolve vague references, transform suggestions, generalize personal entities.
+    * Break down complex facts into the smallest possible, independent facts.
+
+    **Step 3: Final Output**
+    * Format each atomic claim starting with "- ".
+    * If you stopped at Step 1, your only output is "- No verifiable claim".
+
+    ---
+    **Context:** {context_from_user}
+    **Sentence:** {sentence_from_user}
+
+    **Final Output:**"""
+
+    result = ollama.chat(model=model, messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
+    ])
+    print(f"Result: {result.message.content}")
+
 if __name__ == '__main__':
     model = 'llama3.1:8b'
-    context = "I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit. \n\n Considering your tetanus vaccine expired in 2020 and you've got a dirty wound from the Spartan race, your doctor recommends getting a tetanus booster vaccine as soon as possible. They also mentioned that you were due for a booster anyway since it's been more than 3 years since your last vaccine.\n\nYour doctor is a bit puzzled as to why you were given IGG shots instead of a vaccine during your last visit, but that's not a concern for now. They just want to make sure you get the booster vaccine to be on the safe side. It's best to schedule an appointment for the booster vaccine as soon as possible to avoid any potential risks."
-    sentence = 'I spoke to your doctor and they wanted to address your concerns about tetanus.'
+    # context = "I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit. \n\n Considering your tetanus vaccine expired in 2020 and you've got a dirty wound from the Spartan race, your doctor recommends getting a tetanus booster vaccine as soon as possible. They also mentioned that you were due for a booster anyway since it's been more than 3 years since your last vaccine.\n\nYour doctor is a bit puzzled as to why you were given IGG shots instead of a vaccine during your last visit, but that's not a concern for now. They just want to make sure you get the booster vaccine to be on the safe side. It's best to schedule an appointment for the booster vaccine as soon as possible to avoid any potential risks."
+    # sentence = 'I spoke to your doctor and they wanted to address your concerns about tetanus.'
 
-    # context = "I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.\n\nThe doctor mentioned that the anabolic cycle your partner is on is quite intense and requires careful monitoring for potential issues such as infertility, mood swings, and problems related to weight gain, including snoring and possible sleep apnea. They also emphasized the importance of considering the long-term effects of using these substances, particularly when they are stopped.\n\nThe doctor's primary concern is that your partner's underlying condition, Addison's disease, may not significantly complicate things if well-treated, but it could become an issue when the anabolic cycle is stopped. They strongly advise that your partner consult with a medical professional, ideally their endocrinologist, to discuss the potential risks and consequences of using these substances, especially given their pre-existing condition.\n\nIt's essential to have an open and honest conversation with a healthcare professional to ensure your partner's safety and well-being. I would encourage you to support your partner in seeking medical advice, and I'm happy to facilitate a discussion with their doctor if needed."
-    # sentence ="The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
+    context = "I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.\n\nThe doctor mentioned that the anabolic cycle your partner is on is quite intense and requires careful monitoring for potential issues such as infertility, mood swings, and problems related to weight gain, including snoring and possible sleep apnea. They also emphasized the importance of considering the long-term effects of using these substances, particularly when they are stopped.\n\nThe doctor's primary concern is that your partner's underlying condition, Addison's disease, may not significantly complicate things if well-treated, but it could become an issue when the anabolic cycle is stopped. They strongly advise that your partner consult with a medical professional, ideally their endocrinologist, to discuss the potential risks and consequences of using these substances, especially given their pre-existing condition.\n\nIt's essential to have an open and honest conversation with a healthcare professional to ensure your partner's safety and well-being. I would encourage you to support your partner in seeking medical advice, and I'm happy to facilitate a discussion with their doctor if needed."
+    sentence ="The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
 
     # context = "I spoke to your doctor and they wanted to address your concerns regarding the leakage you experienced after your bowel surgery in 2013. According to them, it is possible for an abnormal connection to form between your bowel and your bladder or vagina, which is known as a fistula. This could potentially cause the leakage of substances from your bowel into your urinary tract or vagina.\n\nYour doctor recommends reviewing the notes from your second surgery to understand the nature of the repairs that were performed. This information may help clarify what happened in your specific case.\n\nRegarding your concerns about the quality of care you received from your initial surgeon, your doctor advises that medical malpractice is a complex issue that depends on many factors, including the specific circumstances of your case and the laws in your location. If you're interested in exploring this further, they recommend consulting with a lawyer who can provide guidance on whether you have a valid case.\n\nPlease let us know if you have any further questions or concerns, and we'll be happy to help."
     # sentence = "Please let us know if you have any further questions or concerns, and we'll be happy to help."
 
-    guided_reasoning_chain_for_claim_extraction3(context, sentence, model)
+    guided_reasoning_chain_for_claim_extraction5(context, sentence, model)
 
 
 
