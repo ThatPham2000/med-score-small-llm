@@ -1,5 +1,4 @@
 import ollama
-from spacy.lang.am.examples import sentences
 
 MEDSCORE_PROMPT = """You are a medical expert in evaluating how factual a medical sentence is. You break down a sentence into as many facts as possible. The facts should be objective and verifiable against reliable external information such as Wikipedia and PubMed. All subjective personal experiences (\\\"I was or someone did\\\") and personal narratives (stating a past event) are not verifiable and should not be included in the fact list. Facts should be situated within conditions in the sentence. Suggestions (e.g. \\\"I recommend or Your doctor suggest\\\") and opinions (e.g. \\\"I think\\\") should be transformed into objective facts by removing subjective words and pronouns to only retain the core information that can be verified. Imperative instructions (\\\"do something\\\") should be transformed into declarative facts (\\\"doing something is helpful for some conditions\\\").
 
@@ -69,13 +68,14 @@ Facts:
 - No verifiable claim
 """
 
+
 # result = ollama.chat(model='gpt-oss:20b', messages=[
 #                     {"role": "system", "content": FACTSCORE_PROMPT},
 #                     {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
 #                 ])
 # print(result.message.content)
 
-#===== Task chaining =====
+# ===== Task chaining =====
 def task_chaining(context, sentence):
     system_prompt1 = '''Extract all the claims from the sentence. Ignore any personal opinions or suggestions. Output a list of claims.
     Example: He was an American composer, conductor, and musical director. 
@@ -84,21 +84,22 @@ def task_chaining(context, sentence):
     - He was a conductor. 
     - He was a musical director.'''
     result1 = ollama.chat(model='gpt-oss:20b', messages=[
-                        {"role": "system", "content": system_prompt1},
-                        {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
-                    ])
+        {"role": "system", "content": system_prompt1},
+        {"role": "user",
+         "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
+    ])
     print("Result1:", result1.message.content)
 
     sentences1 = result1.message.content.split("\n")
-    system_prompt2 ="Is the following claim an objective, verifiable statement and does it contain medical knowledge? Answer with only 'Yes' or 'No'."
-    sentences3 =[]
+    system_prompt2 = "Is the following claim an objective, verifiable statement and does it contain medical knowledge? Answer with only 'Yes' or 'No'."
+    sentences3 = []
     for sentence in sentences1:
         if sentence.startswith("- "):
             claim = sentence[2:].strip()
             result2 = ollama.chat(model='gpt-oss:20b', messages=[
-                                {"role": "system", "content": system_prompt2},
-                                {"role": "user", "content": claim}
-                            ])
+                {"role": "system", "content": system_prompt2},
+                {"role": "user", "content": claim}
+            ])
             print('Sentence:', sentence)
             print(f"Claim: {claim} -> Verifiable: {result2.message.content}")
             if 'yes' in result2.message.content.lower():
@@ -107,9 +108,9 @@ def task_chaining(context, sentence):
     system_prompt3 = "Rewrite the following claim as a standalone, objective fact. Remove pronouns and generalize any specific entities."
     for sentence in sentences3:
         result3 = ollama.chat(model='gpt-oss:20b', messages=[
-                            {"role": "system", "content": system_prompt3},
-                            {"role": "user", "content": sentence}
-                        ])
+            {"role": "system", "content": system_prompt3},
+            {"role": "user", "content": sentence}
+        ])
         print(f"Original: {sentence} -> Rewritten: {result3.message.content}")
 
 
@@ -158,7 +159,8 @@ Finally, compile the atomic facts from Step 3 into a clean list under the "Facts
 
     result = ollama.chat(model=model, messages=[
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
+        {"role": "user",
+         "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
     ])
     print(f"Result: {result.message.content}")
 
@@ -185,9 +187,11 @@ To arrive at your answer, you must follow these steps in your internal reasoning
 
     result = ollama.chat(model=model, messages=[
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
+        {"role": "user",
+         "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
     ])
     print(f"Result: {result.message.content}")
+
 
 def guided_reasoning_chain_for_claim_extraction3(context, sentence, model):
     system_prompt = """You are a medical fact extraction expert. Your final output must be ONLY a list of verifiable claims, each starting with a "-", or the single line "- No verifiable claim".
@@ -214,9 +218,11 @@ To arrive at your answer, you must follow these steps in your internal reasoning
 
     result = ollama.chat(model=model, messages=[
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
+        {"role": "user",
+         "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
     ])
     print(f"Result: {result.message.content}")
+
 
 def guided_reasoning_chain_for_claim_extraction4(context, sentence, model):
     system_prompt = """You are a highly precise medical fact extraction expert. Your ONLY job is to extract objective, verifiable medical or scientific claims from a single sentence. Your final output must be ONLY a list of claims, each starting with a "-", or the single line "- No verifiable claim".
@@ -262,7 +268,8 @@ def guided_reasoning_chain_for_claim_extraction4(context, sentence, model):
 
     result = ollama.chat(model=model, messages=[
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
+        {"role": "user",
+         "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
     ])
     print(f"Result: {result.message.content}")
 
@@ -296,10 +303,12 @@ def guided_reasoning_chain_for_claim_extraction5(context, sentence, model):
     If the sentence passed Step 1, identify the core medical fact(s).
     * Remove all conversational framing (e.g., "It is a fact that...", "They think that...").
     * De-contextualization and Specification: rewrite the verifiable parts to make them objective, specific, and self-contained. Resolve vague references, transform suggestions, generalize personal entities.
+    * Crucially, split any items in a list or joined by conjunctions like 'and' or 'or'. (e.g. "Anabolic steroids may have positive effects on muscle and bone health" should be split into two separate claims "Anabolic steroids can have positive effects on muscle health" and "Anabolic steroids can have positive effects on bone health").
     * Break down complex facts into the smallest possible, independent facts.
 
     **Step 3: Final Output**
     * Format each atomic claim starting with "- ".
+    * Do not include any other text, explanations, or comments in your response.
     * If you stopped at Step 1, your only output is "- No verifiable claim".
 
     ---
@@ -310,9 +319,11 @@ def guided_reasoning_chain_for_claim_extraction5(context, sentence, model):
 
     result = ollama.chat(model=model, messages=[
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
+        {"role": "user",
+         "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
     ])
     print(f"Result: {result.message.content}")
+
 
 if __name__ == '__main__':
     model = 'llama3.1:8b'
@@ -320,16 +331,9 @@ if __name__ == '__main__':
     # sentence = 'I spoke to your doctor and they wanted to address your concerns about tetanus.'
 
     context = "I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.\n\nThe doctor mentioned that the anabolic cycle your partner is on is quite intense and requires careful monitoring for potential issues such as infertility, mood swings, and problems related to weight gain, including snoring and possible sleep apnea. They also emphasized the importance of considering the long-term effects of using these substances, particularly when they are stopped.\n\nThe doctor's primary concern is that your partner's underlying condition, Addison's disease, may not significantly complicate things if well-treated, but it could become an issue when the anabolic cycle is stopped. They strongly advise that your partner consult with a medical professional, ideally their endocrinologist, to discuss the potential risks and consequences of using these substances, especially given their pre-existing condition.\n\nIt's essential to have an open and honest conversation with a healthcare professional to ensure your partner's safety and well-being. I would encourage you to support your partner in seeking medical advice, and I'm happy to facilitate a discussion with their doctor if needed."
-    sentence ="The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
+    sentence = "The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
 
     # context = "I spoke to your doctor and they wanted to address your concerns regarding the leakage you experienced after your bowel surgery in 2013. According to them, it is possible for an abnormal connection to form between your bowel and your bladder or vagina, which is known as a fistula. This could potentially cause the leakage of substances from your bowel into your urinary tract or vagina.\n\nYour doctor recommends reviewing the notes from your second surgery to understand the nature of the repairs that were performed. This information may help clarify what happened in your specific case.\n\nRegarding your concerns about the quality of care you received from your initial surgeon, your doctor advises that medical malpractice is a complex issue that depends on many factors, including the specific circumstances of your case and the laws in your location. If you're interested in exploring this further, they recommend consulting with a lawyer who can provide guidance on whether you have a valid case.\n\nPlease let us know if you have any further questions or concerns, and we'll be happy to help."
     # sentence = "Please let us know if you have any further questions or concerns, and we'll be happy to help."
 
     guided_reasoning_chain_for_claim_extraction5(context, sentence, model)
-
-
-
-
-
-
-
