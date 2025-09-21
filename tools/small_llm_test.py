@@ -322,7 +322,7 @@ def guided_reasoning_chain_for_claim_extraction5(context, sentence, model):
         {"role": "user",
          "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
     ])
-    print(f"Result: {result.message.content}")
+    print(f"Result: \n{result.message.content}")
 
 
 if __name__ == '__main__':
