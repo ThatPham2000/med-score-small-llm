@@ -114,7 +114,7 @@ def task_chaining(context, sentence):
 
 
 # 20b model => OK
-def guided_reasoning_chain_for_claim_extraction(context, sentence):
+def guided_reasoning_chain_for_claim_extraction(context, sentence, model):
     system_prompt = """You are a medical expert in evaluating how factual a medical sentence is. Your task is to break down a sentence into a list of verifiable claims by following a strict, step-by-step process.
 
 **Context:** {context_from_user}
@@ -156,7 +156,7 @@ Finally, compile the atomic facts from Step 3 into a clean list under the "Facts
 **Facts:**
 **[SLM WRITES THE FINAL, CLEANED LIST HERE]**"""
 
-    result = ollama.chat(model='gpt-oss:20b', messages=[
+    result = ollama.chat(model=model, messages=[
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
     ])
@@ -165,7 +165,7 @@ Finally, compile the atomic facts from Step 3 into a clean list under the "Facts
 
 # good for 11b, 8b models and above
 # gemma3:27b, gpt-oss:20b, llama3.1:8b, gemma3:12b
-def guided_reasoning_chain_for_claim_extraction2(context, sentence):
+def guided_reasoning_chain_for_claim_extraction2(context, sentence, model):
     system_prompt = """You are a medical fact extraction expert. Your final output must be ONLY a list of verifiable claims, each starting with a "-", or the single line "- No verifiable claim".
 
 To arrive at your answer, you must follow these steps in your internal reasoning process:
@@ -183,13 +183,13 @@ To arrive at your answer, you must follow these steps in your internal reasoning
 
 **Final Output:**"""
 
-    result = ollama.chat(model='gemma3:27b', messages=[
+    result = ollama.chat(model=model, messages=[
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
     ])
     print(f"Result: {result.message.content}")
 
-def guided_reasoning_chain_for_claim_extraction3(context, sentence):
+def guided_reasoning_chain_for_claim_extraction3(context, sentence, model):
     system_prompt = """You are a medical fact extraction expert. Your final output must be ONLY a list of verifiable claims, each starting with a "-", or the single line "- No verifiable claim".
 
 To arrive at your answer, you must follow these steps in your internal reasoning process:
@@ -212,23 +212,24 @@ To arrive at your answer, you must follow these steps in your internal reasoning
 
 **Final Output:**"""
 
-    result = ollama.chat(model='gemma3:12b', messages=[
+    result = ollama.chat(model=model, messages=[
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"}
     ])
     print(f"Result: {result.message.content}")
 
 if __name__ == '__main__':
-    # context = "I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit. \n\n Considering your tetanus vaccine expired in 2020 and you've got a dirty wound from the Spartan race, your doctor recommends getting a tetanus booster vaccine as soon as possible. They also mentioned that you were due for a booster anyway since it's been more than 3 years since your last vaccine.\n\nYour doctor is a bit puzzled as to why you were given IGG shots instead of a vaccine during your last visit, but that's not a concern for now. They just want to make sure you get the booster vaccine to be on the safe side. It's best to schedule an appointment for the booster vaccine as soon as possible to avoid any potential risks."
-    # sentence = 'I spoke to your doctor and they wanted to address your concerns about tetanus.'
+    model = 'llama3.1:8b'
+    context = "I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit. \n\n Considering your tetanus vaccine expired in 2020 and you've got a dirty wound from the Spartan race, your doctor recommends getting a tetanus booster vaccine as soon as possible. They also mentioned that you were due for a booster anyway since it's been more than 3 years since your last vaccine.\n\nYour doctor is a bit puzzled as to why you were given IGG shots instead of a vaccine during your last visit, but that's not a concern for now. They just want to make sure you get the booster vaccine to be on the safe side. It's best to schedule an appointment for the booster vaccine as soon as possible to avoid any potential risks."
+    sentence = 'I spoke to your doctor and they wanted to address your concerns about tetanus.'
 
     # context = "I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.\n\nThe doctor mentioned that the anabolic cycle your partner is on is quite intense and requires careful monitoring for potential issues such as infertility, mood swings, and problems related to weight gain, including snoring and possible sleep apnea. They also emphasized the importance of considering the long-term effects of using these substances, particularly when they are stopped.\n\nThe doctor's primary concern is that your partner's underlying condition, Addison's disease, may not significantly complicate things if well-treated, but it could become an issue when the anabolic cycle is stopped. They strongly advise that your partner consult with a medical professional, ideally their endocrinologist, to discuss the potential risks and consequences of using these substances, especially given their pre-existing condition.\n\nIt's essential to have an open and honest conversation with a healthcare professional to ensure your partner's safety and well-being. I would encourage you to support your partner in seeking medical advice, and I'm happy to facilitate a discussion with their doctor if needed."
     # sentence ="The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
 
-    context = "I spoke to your doctor and they wanted to address your concerns regarding the leakage you experienced after your bowel surgery in 2013. According to them, it is possible for an abnormal connection to form between your bowel and your bladder or vagina, which is known as a fistula. This could potentially cause the leakage of substances from your bowel into your urinary tract or vagina.\n\nYour doctor recommends reviewing the notes from your second surgery to understand the nature of the repairs that were performed. This information may help clarify what happened in your specific case.\n\nRegarding your concerns about the quality of care you received from your initial surgeon, your doctor advises that medical malpractice is a complex issue that depends on many factors, including the specific circumstances of your case and the laws in your location. If you're interested in exploring this further, they recommend consulting with a lawyer who can provide guidance on whether you have a valid case.\n\nPlease let us know if you have any further questions or concerns, and we'll be happy to help."
-    sentence = "Please let us know if you have any further questions or concerns, and we'll be happy to help."
+    # context = "I spoke to your doctor and they wanted to address your concerns regarding the leakage you experienced after your bowel surgery in 2013. According to them, it is possible for an abnormal connection to form between your bowel and your bladder or vagina, which is known as a fistula. This could potentially cause the leakage of substances from your bowel into your urinary tract or vagina.\n\nYour doctor recommends reviewing the notes from your second surgery to understand the nature of the repairs that were performed. This information may help clarify what happened in your specific case.\n\nRegarding your concerns about the quality of care you received from your initial surgeon, your doctor advises that medical malpractice is a complex issue that depends on many factors, including the specific circumstances of your case and the laws in your location. If you're interested in exploring this further, they recommend consulting with a lawyer who can provide guidance on whether you have a valid case.\n\nPlease let us know if you have any further questions or concerns, and we'll be happy to help."
+    # sentence = "Please let us know if you have any further questions or concerns, and we'll be happy to help."
 
-    guided_reasoning_chain_for_claim_extraction3(context, sentence)
+    guided_reasoning_chain_for_claim_extraction3(context, sentence, model)
 
 
 
