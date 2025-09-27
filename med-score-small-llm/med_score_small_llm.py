@@ -6,16 +6,20 @@ from typing import Optional, List, Dict, Any
 import jsonlines
 import ollama
 
+from decompose_dnd_score import DecomposeDnDScore
+from decomposer_fact_score import DecomposerFactScore
+from decomposer_med_score import DecomposerMedScore
 from decomposer_small_llm import DecomposerSmallLLM
 from exceptions import InvalidArgumentException, IllegalArgumentException
 from llm_ollama import LLMOllama
 from llm_openai import LLMOpenAI
 from utils import parse_sentences
+from verifier_internal import VerifierInternal
+from verifier_provided_evidence import VerifierProvidedEvidence
 from verifier_small_llm import VerifierSmallLLM
 
 
 def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
-    """Initialize LLM with enhanced parameters for small models"""
     llm_provider = llm_provider.lower()
     if llm_provider == "ollama":
         if server is None:
@@ -33,47 +37,70 @@ def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
     raise IllegalArgumentException(f"Unknown LLM provider: {llm_provider}")
 
 
-def initialize_small_llm_decomposer(
+def initialize_decomposer(
+        decomposition_mode: str,
         decomposition_llm_provider: str,
         decomposition_model_name: str,
         decomposition_server: Optional[str],
         reasoning_steps: int = 3,
         use_chain_of_thought: bool = True,
 ):
-    """Initialize enhanced decomposer for small language models"""
+    mode = decomposition_mode.lower()
     llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
-    return DecomposerSmallLLM(
-        llm=llm,
-        reasoning_steps=reasoning_steps,
-        use_chain_of_thought=use_chain_of_thought
-    )
+
+    if mode == "small_llm":
+        return DecomposerSmallLLM(
+            llm=llm,
+            reasoning_steps=reasoning_steps,
+            use_chain_of_thought=use_chain_of_thought
+        )
+    if mode == "medscore":
+        return DecomposerMedScore(llm)
+    if mode == "factscore":
+        return DecomposerFactScore(llm)
+    if mode == "dndscore":
+        return DecomposeDnDScore(llm)
+    else:
+        raise IllegalArgumentException(f"Unknown decomposition mode: {mode}")
 
 
-def initialize_small_llm_verifier(
+def initialize_verifier(
+        verification_mode: str,
         verification_llm_provider: str,
         verification_model_name: str,
         verification_server: Optional[str],
+        provided_evidence: Optional[Dict[str, str]] = None,
         use_chain_of_thought: bool = True,
         confidence_threshold: float = 0.7,
         reasoning_steps: int = 3,
 ):
-    """Initialize enhanced verifier for small language models"""
+    """Initialize verifier with multiple modes support"""
+    mode = verification_mode.lower()
     llm = initialize_llm(verification_llm_provider, verification_model_name, verification_server)
-    return VerifierSmallLLM(
-        llm=llm,
-        use_chain_of_thought=use_chain_of_thought,
-        confidence_threshold=confidence_threshold,
-        reasoning_steps=reasoning_steps
-    )
+
+    if mode == "internal":
+        return VerifierInternal(llm)
+    if mode == "provided":
+        if provided_evidence is None:
+            raise InvalidArgumentException("Provided evidence is required for 'provided' verification mode")
+        return VerifierProvidedEvidence(provided_evidence, llm)
+    if mode == "small_llm":
+        return VerifierSmallLLM(
+            llm=llm,
+            use_chain_of_thought=use_chain_of_thought,
+            confidence_threshold=confidence_threshold,
+            reasoning_steps=reasoning_steps
+        )
+
+    raise IllegalArgumentException(f"Unknown verification mode: {mode}")
 
 
 class MedScoreSmallLLM(object):
     """
-    Enhanced MedScore implementation for small language models.
+    Enhanced MedScore implementation with multiple modes support.
     
-    This class implements the approach "Small Language Models for Factuality Evaluation 
-    of Free-Form Medical Answers" by making small language models more intelligent and 
-    reasoning like large language models through:
+    This class supports both traditional MedScore modes
+    and enhanced small language model modes with:
     
     1. Chain-of-thought prompting
     2. Multi-step reasoning processes
@@ -81,20 +108,25 @@ class MedScoreSmallLLM(object):
     4. Improved verification with confidence scoring
     5. Context-aware fact extraction
     """
-    
+
     def __init__(
             self,
-            decomposition_llm_provider: str,
-            decomposition_model_name: str,
-            decomposition_server: Optional[str],
-            verification_llm_provider: str,
-            verification_model_name: str,
-            verification_server: Optional[str],
+            decomposition_mode: str = "small_llm",
+            decomposition_llm_provider: str = "ollama",
+            decomposition_model_name: str = "llama3.2:3b",
+            decomposition_server: Optional[str] = None,
+            decomposition_prompt_path: Optional[str] = None,
+            verification_mode: str = "small_llm",
+            verification_llm_provider: str = "ollama",
+            verification_model_name: str = "llama3.2:3b",
+            verification_server: Optional[str] = None,
+            provided_evidence: Optional[Dict[str, str]] = None,
             reasoning_steps: int = 3,
             use_chain_of_thought: bool = True,
             confidence_threshold: float = 0.7,
     ):
-        self.decomposer = initialize_small_llm_decomposer(
+        self.decomposer = initialize_decomposer(
+            decomposition_mode,
             decomposition_llm_provider,
             decomposition_model_name,
             decomposition_server,
@@ -102,10 +134,12 @@ class MedScoreSmallLLM(object):
             use_chain_of_thought,
         )
 
-        self.verifier = initialize_small_llm_verifier(
+        self.verifier = initialize_verifier(
+            verification_mode,
             verification_llm_provider,
             verification_model_name,
             verification_server,
+            provided_evidence,
             use_chain_of_thought,
             confidence_threshold,
             reasoning_steps,
@@ -139,7 +173,9 @@ class MedScoreSmallLLM(object):
 
 
 def parse_args():
-    parser = ArgumentParser(description="MedScore Small LLM Implementation")
+    parser = ArgumentParser(description="MedScore Implementation with Multiple Modes Support")
+
+    # Small LLM: gemma3:27b, gpt-oss:20b, gemma3:12b, llama3.1:8b, llama3.2:3b
 
     # General
     parser.add_argument("--input_file", required=True, type=str, help="Input JSONL file with medical responses")
@@ -148,27 +184,37 @@ def parse_args():
     parser.add_argument("--verify_only", action="store_true", help="Only run verification")
 
     # Decomposition
-    parser.add_argument("--decomposition_llm_provider", type=str, choices=["ollama", "openapi"], 
+    parser.add_argument("--decomposition_mode", type=str,
+                        choices=["small_llm", "medscore", "factscore", "dndscore", "custom"],
+                        default="small_llm", help="Decomposition mode")
+    parser.add_argument("--decomposition_llm_provider", type=str, choices=["ollama", "openapi"],
                         default="ollama", help="LLM provider for decomposition")
-    parser.add_argument("--decomposition_model_name", type=str, default="llama3.2:3b", 
-                        help="Model name for decomposition (small model)")
-    parser.add_argument("--decomposition_server", type=str, default=None, 
+    parser.add_argument("--decomposition_model_name", type=str, default="gemma3:12b",
+                        help="Model name for decomposition")
+    parser.add_argument("--decomposition_server", type=str, default=None,
                         help="Server URL for decomposition LLM")
+    parser.add_argument("--decomposition_prompt_path", type=str, default=None,
+                        help="Path to custom decomposition prompt")
 
     # Verification
-    parser.add_argument("--verification_llm_provider", type=str, choices=["ollama", "openapi"], 
+    parser.add_argument("--verification_mode", type=str,
+                        choices=["internal", "provided", "small_llm"],
+                        default="small_llm", help="Verification mode")
+    parser.add_argument("--verification_llm_provider", type=str, choices=["ollama", "openapi"],
                         default="ollama", help="LLM provider for verification")
-    parser.add_argument("--verification_model_name", type=str, default="llama3.2:3b", 
-                        help="Model name for verification (small model)")
-    parser.add_argument("--verification_server", type=str, default=None, 
+    parser.add_argument("--verification_model_name", type=str, default="gemma3:12b",
+                        help="Model name for verification")
+    parser.add_argument("--verification_server", type=str, default=None,
                         help="Server URL for verification LLM")
+    parser.add_argument("--provided_evidence_path", type=str, default=None,
+                        help="Path to provided evidence file (required for 'provided' mode)")
 
     # Small LLM specific parameters
-    parser.add_argument("--reasoning_steps", type=int, default=3, 
+    parser.add_argument("--reasoning_steps", type=int, default=3,
                         help="Number of reasoning steps for small LLMs")
-    parser.add_argument("--use_chain_of_thought", action="store_true", default=True, 
+    parser.add_argument("--use_chain_of_thought", action="store_true", default=True,
                         help="Use chain-of-thought prompting")
-    parser.add_argument("--confidence_threshold", type=float, default=0.7, 
+    parser.add_argument("--confidence_threshold", type=float, default=0.7,
                         help="Confidence threshold for verification")
 
     return parser.parse_args()
@@ -184,17 +230,32 @@ if __name__ == '__main__':
     with jsonlines.open(args.input_file) as reader:
         dataset = [item for item in reader.iter()]
 
-    decomposition_output_file = os.path.join(args.output_dir, "small_llm_decompositions.jsonl")
-    verification_output_file = os.path.join(args.output_dir, "small_llm_verifications_evidence.jsonl")
-    output_file = os.path.join(args.output_dir, "small_llm_med_score_output.jsonl")
+    # Handle provided evidence for 'provided' verification mode
+    provided_evidence = None
+    if args.verification_mode == "provided":
+        if args.provided_evidence_path is not None:
+            with open(args.provided_evidence_path, "r") as f:
+                provided_evidence = json.load(f)
+        else:
+            raise InvalidArgumentException("Provided evidence path is required when verification_mode is 'provided'")
+
+    # Set output file names based on modes
+    mode_suffix = f"{args.decomposition_mode}_{args.verification_mode}"
+    decomposition_output_file = os.path.join(args.output_dir, f"{mode_suffix}_decompositions.jsonl")
+    verification_output_file = os.path.join(args.output_dir, f"{mode_suffix}_verifications_evidence.jsonl")
+    output_file = os.path.join(args.output_dir, f"{mode_suffix}_med_score_output.jsonl")
 
     scorer = MedScoreSmallLLM(
+        decomposition_mode=args.decomposition_mode,
         decomposition_llm_provider=args.decomposition_llm_provider,
         decomposition_model_name=args.decomposition_model_name,
         decomposition_server=args.decomposition_server,
+        decomposition_prompt_path=args.decomposition_prompt_path,
+        verification_mode=args.verification_mode,
         verification_llm_provider=args.verification_llm_provider,
         verification_model_name=args.verification_model_name,
         verification_server=args.verification_server,
+        provided_evidence=provided_evidence,
         reasoning_steps=args.reasoning_steps,
         use_chain_of_thought=args.use_chain_of_thought,
         confidence_threshold=args.confidence_threshold,
@@ -203,7 +264,7 @@ if __name__ == '__main__':
     # Process decomposition
     decompositions = []
     if not args.verify_only:
-        print("Running enhanced decomposition with small LLM...")
+        print(f"Running decomposition with {args.decomposition_mode} mode...")
         decompositions = scorer.decompose(dataset)
         with jsonlines.open(decomposition_output_file, 'w') as writer:
             writer.write_all(decompositions)
@@ -212,11 +273,12 @@ if __name__ == '__main__':
             print(f"Decomposition completed. Results saved to {decomposition_output_file}")
             exit(0)
     else:
-        with jsonlines.open(os.path.join(args.output_dir, "small_llm_decompositions.jsonl"), 'r') as reader:
+        # Load existing decompositions
+        with jsonlines.open(decomposition_output_file, 'r') as reader:
             decompositions = [item for item in reader.iter()]
 
     # Process verification
-    print("Running enhanced verification with small LLM...")
+    print(f"Running verification with {args.verification_mode} mode...")
     verifications = scorer.verify(decompositions)
     with jsonlines.open(verification_output_file, 'w') as writer:
         writer.write_all(verifications)
@@ -249,16 +311,17 @@ if __name__ == '__main__':
     # Calculate and display final metrics
     scores = [item['score'] for item in combined_output if item['score'] is not None]
     final_score = sum(scores) / len(scores) if scores else None
-    
-    print(f"\n=== Small LLM MedScore Results ===")
+
+    print(f"\n=== MedScore Results ({args.decomposition_mode} + {args.verification_mode}) ===")
     print(f"Total responses evaluated: {len(combined_output)}")
     print(f"Responses with valid scores: {len(scores)}")
     print(f"Final MedScore: {final_score:.4f}")
     print(f"Results saved to: {output_file}")
-    
+
     # Additional metrics for comparison
     if scores:
         import statistics
+
         print(f"Score statistics:")
         print(f"  Mean: {statistics.mean(scores):.4f}")
         print(f"  Median: {statistics.median(scores):.4f}")
