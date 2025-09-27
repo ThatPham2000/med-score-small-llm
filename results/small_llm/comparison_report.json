@@ -1,0 +1,69 @@
+{
+  "overall_metrics": {
+    "baseline": {
+      "count": 300,
+      "mean": 0.7653988605232795,
+      "median": 0.8,
+      "std": 0.18941186653402017,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "small_llm": {
+      "count": 2,
+      "mean": 0.7756410256410255,
+      "median": 0.7756410256410255,
+      "std": 0.15411301641245267,
+      "min": 0.6666666666666666,
+      "max": 0.8846153846153846
+    },
+    "difference": {
+      "mean_diff": 0.010242165117746005,
+      "relative_improvement": 1.338147421691189,
+      "correlation": 0.0
+    }
+  },
+  "claim_level_metrics": {
+    "baseline_claims": {
+      "total": 3584,
+      "accuracy": 0.7684151785714286,
+      "true_claims": 2754,
+      "false_claims": 830
+    },
+    "small_llm_claims": {
+      "total": 41,
+      "accuracy": 0.8048780487804879,
+      "true_claims": 33,
+      "false_claims": 8
+    },
+    "agreement": {
+      "exact_agreement": 0.7560975609756098,
+      "near_agreement": 0.7560975609756098
+    }
+  },
+  "response_level_metrics": {
+    "total_responses": 2,
+    "score_differences": [
+      0.027472527472527486,
+      0.3333333333333333
+    ],
+    "agreement_threshold": 0.1,
+    "mean_absolute_difference": 0.1804029304029304,
+    "agreement_rate": 0.5
+  },
+  "decomposition_metrics": {
+    "baseline": {
+      "avg_claims_per_response": 11.946666666666667,
+      "total_claims": 3584
+    },
+    "small_llm": {
+      "avg_claims_per_response": 20.5,
+      "total_claims": 41
+    }
+  },
+  "summary": {
+    "performance_comparison": "Small LLM achieved 0.776 vs Baseline 0.765",
+    "improvement": "1.3% relative improvement",
+    "claim_accuracy": "Small LLM: 0.000, Baseline: 0.000",
+    "total_claims": "Small LLM extracted 0 claims vs Baseline 0 claims"
+  }
+}
