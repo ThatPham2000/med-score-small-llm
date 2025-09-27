@@ -6,3 +6,7 @@ tqdm
 requests
 nest_asyncio
 openai
+matplotlib
+seaborn
+numpy
+pandas

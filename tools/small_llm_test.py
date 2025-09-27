@@ -325,8 +325,81 @@ def guided_reasoning_chain_for_claim_extraction5(context, sentence, model):
     print(f"Result: \n{result.message.content}")
 
 
+def guided_reasoning_chain_for_claim_extraction6(context, sentence, model):
+    system_prompt = f"""You are a medical expert in evaluating how factual a medical sentence is. You break down a sentence into as many facts as possible using step-by-step reasoning.
+
+REASONING PROCESS:
+1. First, identify the main medical concepts in the sentence
+2. Then, break down each concept into verifiable facts
+3. Finally, ensure each fact is objective and can be verified against reliable sources
+
+The facts should be objective and verifiable against reliable external information such as Wikipedia and PubMed. All subjective personal experiences ("I was or someone did") and personal narratives (stating a past event) are not verifiable and should not be included in the fact list. Facts should be situated within conditions in the sentence. Suggestions (e.g. "I recommend or Your doctor suggest") and opinions (e.g. "I think") should be transformed into objective facts by removing subjective words and pronouns to only retain the core information that can be verified. Imperative instructions ("do something") should be transformed into declarative facts ("doing something is helpful for some conditions").
+
+If there is an overly specific entity such as "Your partner" or vague references (pronouns, this or that) in the fact, replace it with a general phrase with conditional modifiers using information in the provided context (e.g. "People in some conditions"). Each fact should be verifiable on its own and require no additional context. Do not add additional information outside of the sentence and context.
+
+REASONING FORMAT:
+Think step by step:
+1. What are the main medical concepts here?
+2. What facts can be extracted from each concept?
+3. Are these facts verifiable and objective?
+
+If there is no verifiable fact in the sentence, please write "No verifiable claim".
+
+Here are some examples with reasoning:
+
+Context: I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit. \n\n Considering your tetanus vaccine expired in 2020 and you've got a dirty wound from the Spartan race, your doctor recommends getting a tetanus booster vaccine as soon as possible. They also mentioned that you were due for a booster anyway since it's been more than 3 years since your last vaccine.\n\nYour doctor is a bit puzzled as to why you were given IGG shots instead of a vaccine during your last visit, but that's not a concern for now. They just want to make sure you get the booster vaccine to be on the safe side. It's best to schedule an appointment for the booster vaccine as soon as possible to avoid any potential risks.
+
+Please breakdown the following sentence into independent facts: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Reasoning:
+1. Main concepts: doctor consultation, tetanus concerns
+2. Facts to extract: None - this is a personal narrative about speaking to a doctor
+3. Verifiability: This is a subjective personal experience, not a verifiable medical fact
+
+Facts:
+- No verifiable claim
+
+Context: I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.\n\nThe doctor mentioned that the anabolic cycle your partner is on is quite intense and requires careful monitoring for potential issues such as infertility, mood swings, and problems related to weight gain, including snoring and possible sleep apnea. They also emphasized the importance of considering the long-term effects of using these substances, particularly when they are stopped.\n\nThe doctor's primary concern is that your partner's underlying condition, Addison's disease, may not significantly complicate things if well-treated, but it could become an issue when the anabolic cycle is stopped. They strongly advise that your partner consult with a medical professional, ideally their endocrinologist, to discuss the potential risks and consequences of using these substances, especially given their pre-existing condition.\n\nIt's essential to have an open and honest conversation with a healthcare professional to ensure your partner's safety and well-being. I would encourage you to support your partner in seeking medical advice, and I'm happy to facilitate a discussion with their doctor if needed.
+
+Please breakdown the following sentence into independent facts: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Reasoning:
+1. Main concepts: substances, muscle health, bone health, risks, side effects
+2. Facts to extract: 
+   - Substances can have positive effects on muscle health
+   - Substances can have positive effects on bone health  
+   - Substances carry risks
+   - Substances carry side effects
+3. Verifiability: These are objective medical facts about substance effects
+
+Facts:
+- Anabolic steroids may have positive effects on muscle health.
+- Anabolic steroids may have positive effects on bone health.
+- Anabolic steroids may also carry significant risks.
+- Anabolic steroids may carry potential side effects.
+
+Now, for your task, follow the same reasoning process, and response with plain text format."""
+
+    content = f"""Context: {context}
+
+Please breakdown the following sentence into independent facts: {sentence}
+
+Reasoning:
+1. What are the main medical concepts here?
+2. What facts can be extracted from each concept?
+3. Are these facts verifiable and objective?
+
+Facts:
+"""
+    result = ollama.chat(model=model, messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": content}
+    ])
+    print(f"Result: \n{result.message.content}")
+
+
 if __name__ == '__main__':
-    model = 'gemma3:12b'
+    model = 'llama3.2-vision:11b'
     # context = "I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit. \n\n Considering your tetanus vaccine expired in 2020 and you've got a dirty wound from the Spartan race, your doctor recommends getting a tetanus booster vaccine as soon as possible. They also mentioned that you were due for a booster anyway since it's been more than 3 years since your last vaccine.\n\nYour doctor is a bit puzzled as to why you were given IGG shots instead of a vaccine during your last visit, but that's not a concern for now. They just want to make sure you get the booster vaccine to be on the safe side. It's best to schedule an appointment for the booster vaccine as soon as possible to avoid any potential risks."
     # sentence = 'I spoke to your doctor and they wanted to address your concerns about tetanus.'
 
@@ -339,7 +412,7 @@ if __name__ == '__main__':
     # context = "I spoke to your doctor and they wanted to thank you for your interest in creating a language course to help physicians better communicate with patients who speak different languages. \n\nThey mentioned that while language barriers can contribute to the \\\"revolving door syndrome,\\\" it's just one of many factors. Other important factors include education, home support, medication noncompliance, and lack of primary care. \n\nIn terms of a language course, your doctor thinks that Duolingo is a good option. However, they noted that it's challenging for doctors to find the time to learn multiple languages, as there are many languages spoken by patients in their area, including Spanish, Hmong, Chinese, and Polish. They also mentioned that many Spanish-speaking patients have some knowledge of English or have family members who are fluent in English.\n\nYour doctor didn't specify a preferred medium for the course, but they seemed to appreciate the idea of a convenient and accessible program. They also didn't provide specific vocabulary recommendations, but it's likely that a course focused on medical terminology and common patient interactions would be most useful."
     # sentence = "However, they noted that it's challenging for doctors to find the time to learn multiple languages, as there are many languages spoken by patients in their area, including Spanish, Hmong, Chinese, and Polish."
 
-    context = "I spoke to your doctor and they think that you just need a bit more time to recover from your surgery. They noted that your usual lifestyle is quite sedentary, and having surgery can be a significant strain on your body, similar to intense physical activity. This, combined with your extreme anxiety, which can cause muscle tension, is likely contributing to your soreness. \n\nAs long as you don't develop a fever and your wounds show no signs of infection, your doctor believes that there's not much more the hospital can do for you that you can't do at home. Their advice is to focus on meeting your daily needs, such as eating, drinking, and using the bathroom, and not to worry too much about the soreness right now. \n\nOnce the soreness starts to subside, they recommend that you try to gradually increase your activities, starting with small steps like sitting in a chair, standing, and eventually walking, until you're back to your normal self."
-    sentence = "Once the soreness starts to subside, they recommend that you try to gradually increase your activities, starting with small steps like sitting in a chair, standing, and eventually walking, until you're back to your normal self."
+    # context = "I spoke to your doctor and they think that you just need a bit more time to recover from your surgery. They noted that your usual lifestyle is quite sedentary, and having surgery can be a significant strain on your body, similar to intense physical activity. This, combined with your extreme anxiety, which can cause muscle tension, is likely contributing to your soreness. \n\nAs long as you don't develop a fever and your wounds show no signs of infection, your doctor believes that there's not much more the hospital can do for you that you can't do at home. Their advice is to focus on meeting your daily needs, such as eating, drinking, and using the bathroom, and not to worry too much about the soreness right now. \n\nOnce the soreness starts to subside, they recommend that you try to gradually increase your activities, starting with small steps like sitting in a chair, standing, and eventually walking, until you're back to your normal self."
+    # sentence = "Once the soreness starts to subside, they recommend that you try to gradually increase your activities, starting with small steps like sitting in a chair, standing, and eventually walking, until you're back to your normal self."
 
-    guided_reasoning_chain_for_claim_extraction5(context, sentence, model)
+    guided_reasoning_chain_for_claim_extraction6(context, sentence, model)
