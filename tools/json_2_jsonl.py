@@ -2,8 +2,8 @@ import json
 
 from jsonlines import jsonlines
 
-input_file = '/Users/that.phamvan/my_ws/master/med-score-vi/data/hospital_108/page1.json'
-output_file = '/Users/that.phamvan/my_ws/master/med-score-vi/data/hospital_108/page1.jsonl'
+input_file = '//data/hospital_108/page1.json'
+output_file = '//data/hospital_108/page1.jsonl'
 
 # Load JSON data
 with open(input_file, 'r') as reader:

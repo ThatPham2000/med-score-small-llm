@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 nest_asyncio.apply()
 
-input_file = '/Users/that.phamvan/my_ws/master/med-score-vi/data/hospital_108/page1.json'
+input_file = '//data/hospital_108/page1.json'
 
 # Load JSON data
 with open(input_file, 'r') as reader:
@@ -66,6 +66,6 @@ for item, completion in zip(json_data, all_completions):
     result.append(item)
 
 # Save to JSONL file
-output_file = '/Users/that.phamvan/my_ws/master/med-score-vi/data/hospital_108/page1_augmented.jsonl'
+output_file = '//data/hospital_108/page1_augmented.jsonl'
 with jsonlines.open(output_file, 'w') as writer:
     writer.write_all(result)
