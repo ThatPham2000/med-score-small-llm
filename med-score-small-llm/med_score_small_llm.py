@@ -196,6 +196,8 @@ def parse_args():
                         help="Model name for decomposition")
     parser.add_argument("--decomposition_server", type=str, default=None,
                         help="Server URL for decomposition LLM")
+    parser.add_argument("--decomposition_input_file", type=str, default=None,
+                        help="Path to decomposition input file (required for verify_only mode)")
     parser.add_argument("--decomposition_prompt_path", type=str, default=None,
                         help="Path to custom decomposition prompt")
 
@@ -233,7 +235,7 @@ if __name__ == '__main__':
 
     # Handle provided evidence for 'provided' verification mode
     provided_evidence = None
-    if args.verification_mode == "provided":
+    if args.verification_mode == "provided" or args.verification_mode == "provided_small_llm":
         if args.provided_evidence_path is not None:
             with open(args.provided_evidence_path, "r") as f:
                 provided_evidence = json.load(f)
@@ -241,10 +243,10 @@ if __name__ == '__main__':
             raise InvalidArgumentException("Provided evidence path is required when verification_mode is 'provided'")
 
     # Set output file names based on modes
-    mode_suffix = f"{args.decomposition_mode}_{args.verification_mode}"
-    decomposition_output_file = os.path.join(args.output_dir, f"{mode_suffix}_decompositions.jsonl")
-    verification_output_file = os.path.join(args.output_dir, f"{mode_suffix}_verifications_evidence.jsonl")
-    output_file = os.path.join(args.output_dir, f"{mode_suffix}_med_score_output.jsonl")
+    mode_prefix = f"{args.decomposition_mode}_{args.verification_mode}"
+    decomposition_output_file = os.path.join(args.output_dir, f"{mode_prefix}_decompositions.jsonl")
+    verification_output_file = os.path.join(args.output_dir, f"{mode_prefix}_verifications.jsonl")
+    output_file = os.path.join(args.output_dir, f"{mode_prefix}_med_score_output.jsonl")
 
     scorer = MedScoreSmallLLM(
         decomposition_mode=args.decomposition_mode,
@@ -274,7 +276,7 @@ if __name__ == '__main__':
             exit(0)
     else:
         # Load existing decompositions
-        with jsonlines.open(decomposition_output_file, 'r') as reader:
+        with jsonlines.open(args.decomposition_input_file, 'r') as reader:
             decompositions = [item for item in reader.iter()]
 
     # Process verification
