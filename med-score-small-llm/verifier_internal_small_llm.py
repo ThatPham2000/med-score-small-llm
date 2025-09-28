@@ -1,6 +1,10 @@
+import asyncio
 from typing import List, Dict, Any
 
+from tqdm import tqdm
+
 from llm import LLM
+from utils import chunker
 from verifier import Verifier
 
 
@@ -46,6 +50,24 @@ class VerifierInternalSmallLLM(Verifier):
             ])
         return messages
 
+    def do_verify(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Override do_verify to use format_completions for enhanced processing"""
+        verifier_inputs = self.add_evidence_to_verification_input(decompositions)
+        messages = self.prepare_messages(verifier_inputs)
+
+        all_completions = []
+        n_iter = len(messages) // self.batch_size
+        for batch in tqdm(chunker(messages, self.batch_size), desc="Verifier process", total=n_iter):
+            completions = asyncio.run(self.llm.batch_response(batch))
+            all_completions.extend(completions)
+
+        # Use format_completions instead of basic parsing
+        verification_output = self.format_completions(
+            verifier_inputs,
+            self.llm.normalize_llm_response(all_completions)
+        )
+        return verification_output
+
     def _get_enhanced_system_prompt(self) -> str:
         """Enhanced system prompt with reasoning for small language models using internal knowledge"""
         reasoning_steps_text = self._generate_verification_reasoning_steps()
@@ -81,11 +103,11 @@ After your reasoning, also provide a confidence score from 0.0 to 1.0 indicating
 
 Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence: X.X]"""
 
-    def format_completions(self, verification_input: List[Dict[str, Any]], completions: List[str]) -> List[
+    def format_completions(self, verifier_inputs: List[Dict[str, Any]], completions: List[str]) -> List[
         Dict[str, Any]]:
         """Enhanced completion formatting that handles reasoning, confidence, and threshold filtering"""
         verifications = []
-        for d_input, completion in zip(verification_input, completions):
+        for verifier_input, completion in zip(verifier_inputs, completions):
             # Extract True/False, reasoning, and confidence from completion
             raw_response, score, confidence = self._parse_reasoning_response_with_confidence(completion)
 
@@ -95,7 +117,7 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
                 score = 0.0  # Treat low-confidence verifications as False
                 raw_response = f"[LOW CONFIDENCE] {raw_response}"
 
-            verification = {k: v for k, v in d_input.items()}
+            verification = {k: v for k, v in verifier_input.items()}
             verification["raw"] = raw_response
             verification["score"] = score
             verification["confidence"] = confidence
