@@ -15,8 +15,8 @@ from llm_ollama import LLMOllama
 from llm_openai import LLMOpenAI
 from utils import parse_sentences
 from verifier_internal import VerifierInternal
-from verifier_provided_evidence import VerifierProvidedEvidence
 from verifier_internal_small_llm import VerifierInternalSmallLLM
+from verifier_provided_evidence import VerifierProvidedEvidence
 from verifier_provided_evidence_small_llm import VerifierProvidedEvidenceSmallLLM
 
 
@@ -44,7 +44,6 @@ def initialize_decomposer(
         decomposition_model_name: str,
         decomposition_server: Optional[str],
         reasoning_steps: int = 3,
-        use_chain_of_thought: bool = True,
 ):
     mode = decomposition_mode.lower()
     llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
@@ -53,7 +52,6 @@ def initialize_decomposer(
         return DecomposerSmallLLM(
             llm=llm,
             reasoning_steps=reasoning_steps,
-            use_chain_of_thought=use_chain_of_thought
         )
     if mode == "medscore":
         return DecomposerMedScore(llm)
@@ -71,7 +69,6 @@ def initialize_verifier(
         verification_model_name: str,
         verification_server: Optional[str],
         provided_evidence: Optional[Dict[str, str]] = None,
-        use_chain_of_thought: bool = True,
         confidence_threshold: float = 0.7,
         reasoning_steps: int = 3,
 ):
@@ -88,7 +85,6 @@ def initialize_verifier(
     if mode == "internal_small_llm":
         return VerifierInternalSmallLLM(
             llm=llm,
-            use_chain_of_thought=use_chain_of_thought,
             confidence_threshold=confidence_threshold,
             reasoning_steps=reasoning_steps
         )
@@ -98,7 +94,6 @@ def initialize_verifier(
         return VerifierProvidedEvidenceSmallLLM(
             provided_evidence=provided_evidence,
             llm=llm,
-            use_chain_of_thought=use_chain_of_thought,
             confidence_threshold=confidence_threshold,
             reasoning_steps=reasoning_steps
         )
@@ -133,7 +128,6 @@ class MedScoreSmallLLM(object):
             verification_server: Optional[str] = None,
             provided_evidence: Optional[Dict[str, str]] = None,
             reasoning_steps: int = 3,
-            use_chain_of_thought: bool = True,
             confidence_threshold: float = 0.7,
     ):
         self.decomposer = initialize_decomposer(
@@ -142,7 +136,6 @@ class MedScoreSmallLLM(object):
             decomposition_model_name,
             decomposition_server,
             reasoning_steps,
-            use_chain_of_thought,
         )
 
         self.verifier = initialize_verifier(
@@ -151,7 +144,6 @@ class MedScoreSmallLLM(object):
             verification_model_name,
             verification_server,
             provided_evidence,
-            use_chain_of_thought,
             confidence_threshold,
             reasoning_steps,
         )
@@ -223,8 +215,6 @@ def parse_args():
     # Small LLM specific parameters
     parser.add_argument("--reasoning_steps", type=int, default=3,
                         help="Number of reasoning steps for small LLMs")
-    parser.add_argument("--use_chain_of_thought", action="store_true", default=True,
-                        help="Use chain-of-thought prompting")
     parser.add_argument("--confidence_threshold", type=float, default=0.7,
                         help="Confidence threshold for verification")
 
@@ -268,7 +258,6 @@ if __name__ == '__main__':
         verification_server=args.verification_server,
         provided_evidence=provided_evidence,
         reasoning_steps=args.reasoning_steps,
-        use_chain_of_thought=args.use_chain_of_thought,
         confidence_threshold=args.confidence_threshold,
     )
 
