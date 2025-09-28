@@ -88,12 +88,12 @@ Facts:
                     # Extract claim from bullet point
                     if line.strip().startswith("- "):
                         claim = line.strip()[2:].strip()
-                        if claim and claim != "No verifiable claim":
+                        if claim and "no verifiable claim" not in claim.lower():
                             claim_list.append(claim)
                     elif line.strip() and not line.strip().startswith(("Context:", "Please breakdown")):
                         # Handle cases where facts don't start with bullet points
                         claim = line.strip()
-                        if claim and claim != "No verifiable claim":
+                        if claim and "no verifiable claim" not in claim.lower():
                             claim_list.append(claim)
 
             # Process claims similar to original implementation
