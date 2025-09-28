@@ -1,6 +1,10 @@
+import asyncio
 from typing import List, Dict, Any
 
+from tqdm import tqdm
+
 from llm import LLM
+from utils import chunker, parse_reasoning_response_with_confidence
 from verifier import Verifier
 
 
@@ -41,10 +45,7 @@ class VerifierProvidedEvidenceSmallLLM(Verifier):
         """Prepare messages with enhanced reasoning prompts for small LLMs using provided evidence"""
         messages = []
         for d in verification_input:
-            if d.get("evidence"):
-                formatted_input = self._get_enhanced_verification_prompt_with_evidence(d['claim'], d['evidence'])
-            else:
-                formatted_input = self._get_enhanced_verification_prompt(d['claim'])
+            formatted_input = self._get_enhanced_verification_prompt_with_evidence(d['claim'], d['evidence'])
             system_prompt = self._get_enhanced_system_prompt()
 
             messages.append([
@@ -53,17 +54,41 @@ class VerifierProvidedEvidenceSmallLLM(Verifier):
             ])
         return messages
 
+    def do_verify(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Override do_verify to use format_completions for enhanced processing"""
+        verifier_inputs = self.add_evidence_to_verification_input(decompositions)
+        messages = self.prepare_messages(verifier_inputs)
+
+        all_completions = []
+        n_iter = len(messages) // self.batch_size
+        for batch in tqdm(chunker(messages, self.batch_size), desc="Verifier process", total=n_iter):
+            completions = asyncio.run(self.llm.batch_response(batch))
+            all_completions.extend(completions)
+
+        # Use format_completions instead of basic parsing
+        verification_output = self.format_completions(
+            verifier_inputs,
+            self.llm.normalize_llm_response(all_completions)
+        )
+        return verification_output
+
     def _get_enhanced_system_prompt(self) -> str:
-        """Enhanced system prompt with reasoning for small language models using provided evidence"""
+        """Enhanced system prompt with reasoning for small language models using provided evidence only"""
         reasoning_steps_text = self._generate_verification_reasoning_steps()
         reasoning_format = self._generate_verification_reasoning_format()
 
-        return f"""You are an assistant who verifies whether a claim from a medical response is True or False using step-by-step reasoning and provided evidence when available. 
+        return f"""You are an assistant who verifies whether a claim from a medical response is True or False using ONLY the provided evidence. 
 
 REASONING PROCESS:
 {reasoning_steps_text}
 
-You should rely on the provided evidence when available, and fall back to your own knowledge when evidence is not provided. Always output 'True' or 'False' first, followed by your reasoning. If there is not enough context or you are unable to verify the claim, then output 'False'.
+CRITICAL RULES:
+1. You MUST ONLY use the provided evidence to verify claims
+2. Do NOT use your own medical knowledge or training data
+3. If the claim is not mentioned or supported by the provided evidence, it is considered a hallucination
+4. If the claim contradicts the provided evidence, it is false
+5. If the claim is not found in the evidence, output 'False' (hallucination)
+6. Only output 'True' if the claim is explicitly supported by the provided evidence
 
 REASONING FORMAT:
 Think step by step:
@@ -74,28 +99,20 @@ After your reasoning, also provide a confidence score from 0.0 to 1.0 indicating
 
 Output: [True/False] - [Brief reasoning] - [Confidence: X.X]"""
 
-    def _get_enhanced_verification_prompt(self, claim: str) -> str:
-        """Enhanced verification prompt with reasoning steps for internal knowledge (fallback)"""
-        reasoning_format = self._generate_verification_reasoning_format()
-        return f"""Please verify the following medical claim using step-by-step reasoning and your own knowledge:
-
-Claim: {claim}
-
-Think step by step:
-{reasoning_format}
-
-After your reasoning, also provide a confidence score from 0.0 to 1.0 indicating how certain you are about your verification.
-
-Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence: X.X]"""
-
     def _get_enhanced_verification_prompt_with_evidence(self, claim: str, evidence: str) -> str:
-        """Enhanced verification prompt with reasoning steps and provided evidence"""
+        """Enhanced verification prompt with reasoning steps and provided evidence only"""
         reasoning_format = self._generate_verification_reasoning_format()
-        return f"""Please verify the following medical claim using the provided evidence and step-by-step reasoning:
+        return f"""Please verify the following medical claim using ONLY the provided evidence. Do NOT use your own knowledge.
 
 Claim: {claim}
 
 Evidence: {evidence}
+
+IMPORTANT: 
+- Only use information from the provided evidence above
+- If the claim is not mentioned in the evidence, it is a hallucination (False)
+- If the claim contradicts the evidence, it is False
+- Only mark as True if explicitly supported by the evidence
 
 Think step by step:
 {reasoning_format}
@@ -113,21 +130,21 @@ You should rely on the provided evidence to make your determination. Always outp
             return """You are an assistant who verifies whether a claim from a medical response is True or False using your own knowledge. 
 You should rely exclusively on your own knowledge and always output 'True' or 'False' first, followed by your reasoning."""
 
-    def format_completions(self, verification_input: List[Dict[str, Any]], completions: List[str]) -> List[
+    def format_completions(self, verifier_inputs: List[Dict[str, Any]], completions: List[str]) -> List[
         Dict[str, Any]]:
         """Enhanced completion formatting that handles reasoning, confidence, and threshold filtering"""
         verifications = []
-        for d_input, completion in zip(verification_input, completions):
+        for verifier_input, completion in zip(verifier_inputs, completions):
             # Extract True/False, reasoning, and confidence from completion
-            raw_response, score, confidence = self._parse_reasoning_response_with_confidence(completion)
+            raw_response, score, confidence = parse_reasoning_response_with_confidence(completion)
 
             # Apply confidence threshold filtering
             if confidence < self.confidence_threshold:
                 # If confidence is below threshold, mark as uncertain
                 score = 0.0  # Treat low-confidence verifications as False
-                raw_response = f"[LOW CONFIDENCE] {raw_response}"
+                raw_response = f"[LOW CONFIDENCE] [CONFIDENCE/THRESHOLD: {confidence}/{self.confidence_threshold}] {raw_response}"
 
-            verification = {k: v for k, v in d_input.items()}
+            verification = {k: v for k, v in verifier_input.items()}
             verification["raw"] = raw_response
             verification["score"] = score
             verification["confidence"] = confidence
@@ -136,153 +153,61 @@ You should rely exclusively on your own knowledge and always output 'True' or 'F
 
         return verifications
 
-    def _parse_reasoning_response_with_confidence(self, completion: str) -> tuple:
-        """Parse reasoning response to extract True/False, score, and confidence"""
-        lines = completion.strip().split('\n')
-
-        # Initialize default values
-        raw_response = "False"
-        score = 0.0
-        confidence = 0.5  # Default confidence
-
-        # Look for True/False in the response
-        for line in lines:
-            line = line.strip()
-            if line.lower().startswith('true'):
-                raw_response = "True"
-                score = 1.0
-                break
-            elif line.lower().startswith('false'):
-                raw_response = "False"
-                score = 0.0
-                break
-
-        # If no clear True/False found, try to infer from content
-        if raw_response == "False" and score == 0.0:
-            completion_lower = completion.lower()
-            if any(word in completion_lower for word in ['true', 'correct', 'accurate', 'valid']):
-                raw_response = "True"
-                score = 1.0
-            elif any(word in completion_lower for word in ['false', 'incorrect', 'inaccurate', 'invalid']):
-                raw_response = "False"
-                score = 0.0
-
-        # Extract confidence score from the response
-        confidence = self._extract_confidence_score(completion)
-
-        return raw_response, score, confidence
-
-    def _extract_confidence_score(self, completion: str) -> float:
-        """Extract confidence score from completion text"""
-        import re
-
-        # Look for confidence patterns like "Confidence: 0.8" or "[Confidence: 0.8]"
-        confidence_patterns = [
-            r'confidence:\s*(\d+\.?\d*)',
-            r'\[confidence:\s*(\d+\.?\d*)\]',
-            r'confidence\s*=\s*(\d+\.?\d*)',
-            r'confidence\s*(\d+\.?\d*)',
-        ]
-
-        for pattern in confidence_patterns:
-            match = re.search(pattern, completion.lower())
-            if match:
-                try:
-                    confidence = float(match.group(1))
-                    # Ensure confidence is between 0.0 and 1.0
-                    return max(0.0, min(1.0, confidence))
-                except ValueError:
-                    continue
-
-        # Look for percentage patterns like "80%" or "80 percent"
-        percentage_patterns = [
-            r'(\d+\.?\d*)\s*%',
-            r'(\d+\.?\d*)\s*percent',
-        ]
-
-        for pattern in percentage_patterns:
-            match = re.search(pattern, completion.lower())
-            if match:
-                try:
-                    percentage = float(match.group(1))
-                    return max(0.0, min(1.0, percentage / 100.0))
-                except ValueError:
-                    continue
-
-        # Look for word-based confidence indicators
-        completion_lower = completion.lower()
-        if any(word in completion_lower for word in ['very confident', 'highly confident', 'extremely confident']):
-            return 0.9
-        elif any(word in completion_lower for word in ['confident', 'certain', 'sure']):
-            return 0.8
-        elif any(word in completion_lower for word in ['somewhat confident', 'moderately confident']):
-            return 0.6
-        elif any(word in completion_lower for word in ['uncertain', 'unsure', 'not sure']):
-            return 0.3
-        elif any(word in completion_lower for word in ['very uncertain', 'highly uncertain']):
-            return 0.1
-
-        # Default confidence based on response clarity
-        if any(word in completion_lower for word in ['true', 'false', 'correct', 'incorrect']):
-            return 0.7  # Medium confidence for clear responses
-        else:
-            return 0.4  # Low confidence for unclear responses
-
     def _generate_verification_reasoning_steps(self) -> str:
         """Generate dynamic reasoning steps for verification based on the reasoning_steps parameter"""
         if self.reasoning_steps == 1:
-            return "1. Determine if the claim is factually correct based on the provided evidence and your medical knowledge"
+            return "1. Check if the claim is supported by the provided evidence only"
         elif self.reasoning_steps == 2:
             return """1. First, identify the key medical concepts in the claim
-2. Then, determine if the claim is factually correct based on the evidence and your knowledge"""
+2. Then, check if these concepts are mentioned in the provided evidence"""
         elif self.reasoning_steps == 3:
             return """1. First, identify the key medical concepts in the claim
-2. Then, analyze the provided evidence and recall your knowledge about these concepts
-3. Finally, determine if the claim is factually correct"""
+2. Then, search the provided evidence for information about these concepts
+3. Finally, determine if the claim is supported by the evidence (if not found, it's a hallucination)"""
         elif self.reasoning_steps == 4:
             return """1. First, identify the key medical concepts in the claim
-2. Then, analyze the provided evidence and recall your knowledge about these concepts
-3. Next, evaluate the accuracy of the claim
-4. Finally, determine if the claim is factually correct"""
+2. Then, search the provided evidence for information about these concepts
+3. Next, check if the claim matches what is stated in the evidence
+4. Finally, determine if the claim is supported by the evidence (if not found, it's a hallucination)"""
         elif self.reasoning_steps == 5:
             return """1. First, identify the key medical concepts in the claim
-2. Then, analyze the provided evidence and recall your knowledge about these concepts
-3. Next, evaluate the accuracy of the claim
-4. Then, consider any potential ambiguities or edge cases
-5. Finally, determine if the claim is factually correct"""
+2. Then, search the provided evidence for information about these concepts
+3. Next, check if the claim matches what is stated in the evidence
+4. Then, verify there are no contradictions between the claim and evidence
+5. Finally, determine if the claim is supported by the evidence (if not found, it's a hallucination)"""
         else:
             # Default to 3 steps for any other value
             return """1. First, identify the key medical concepts in the claim
-2. Then, analyze the provided evidence and recall your knowledge about these concepts
-3. Finally, determine if the claim is factually correct"""
+2. Then, search the provided evidence for information about these concepts
+3. Finally, determine if the claim is supported by the evidence (if not found, it's a hallucination)"""
 
     def _generate_verification_reasoning_format(self) -> str:
         """Generate dynamic reasoning format for verification based on the reasoning_steps parameter"""
         if self.reasoning_steps == 1:
-            return "1. Is this claim factually correct based on the evidence and my medical knowledge?"
+            return "1. Is this claim supported by the provided evidence only?"
         elif self.reasoning_steps == 2:
             return """1. What medical concepts are mentioned in this claim?
-2. Is this claim factually correct based on the evidence and my knowledge?"""
+2. Are these concepts mentioned in the provided evidence?"""
         elif self.reasoning_steps == 3:
             return """1. What medical concepts are mentioned in this claim?
-2. What does the evidence say about these concepts, and what do I know from medical knowledge?
-3. Is this claim factually correct based on the evidence and my knowledge?"""
+2. What does the evidence say about these concepts?
+3. Is this claim supported by the evidence (if not found, it's a hallucination)?"""
         elif self.reasoning_steps == 4:
             return """1. What medical concepts are mentioned in this claim?
-2. What does the evidence say about these concepts, and what do I know from medical knowledge?
-3. How accurate is this claim based on the evidence and my knowledge?
-4. Is this claim factually correct?"""
+2. What does the evidence say about these concepts?
+3. How well does the claim match what is stated in the evidence?
+4. Is this claim supported by the evidence (if not found, it's a hallucination)?"""
         elif self.reasoning_steps == 5:
             return """1. What medical concepts are mentioned in this claim?
-2. What does the evidence say about these concepts, and what do I know from medical knowledge?
-3. How accurate is this claim based on the evidence and my knowledge?
-4. Are there any potential ambiguities or edge cases?
-5. Is this claim factually correct?"""
+2. What does the evidence say about these concepts?
+3. How well does the claim match what is stated in the evidence?
+4. Are there any contradictions between the claim and evidence?
+5. Is this claim supported by the evidence (if not found, it's a hallucination)?"""
         else:
             # Default to 3 steps for any other value
             return """1. What medical concepts are mentioned in this claim?
-2. What does the evidence say about these concepts, and what do I know from medical knowledge?
-3. Is this claim factually correct based on the evidence and my knowledge?"""
+2. What does the evidence say about these concepts?
+3. Is this claim supported by the evidence (if not found, it's a hallucination)?"""
 
     def get_confidence_statistics(self, verifications: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Get confidence statistics from verification results"""

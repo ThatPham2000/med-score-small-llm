@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 from tqdm import tqdm
 
 from llm import LLM
-from utils import chunker
+from utils import chunker, parse_reasoning_response_with_confidence
 from verifier import Verifier
 
 
@@ -109,13 +109,13 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
         verifications = []
         for verifier_input, completion in zip(verifier_inputs, completions):
             # Extract True/False, reasoning, and confidence from completion
-            raw_response, score, confidence = self._parse_reasoning_response_with_confidence(completion)
+            raw_response, score, confidence = parse_reasoning_response_with_confidence(completion)
 
             # Apply confidence threshold filtering
             if confidence < self.confidence_threshold:
                 # If confidence is below threshold, mark as uncertain
                 score = 0.0  # Treat low-confidence verifications as False
-                raw_response = f"[LOW CONFIDENCE] {raw_response}"
+                raw_response = f"[LOW CONFIDENCE] [CONFIDENCE/THRESHOLD: {confidence}/{self.confidence_threshold}] {raw_response}"
 
             verification = {k: v for k, v in verifier_input.items()}
             verification["raw"] = raw_response
@@ -125,95 +125,6 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
             verifications.append(verification)
 
         return verifications
-
-    def _parse_reasoning_response_with_confidence(self, completion: str) -> tuple:
-        """Parse reasoning response to extract True/False, score, and confidence using same methodology as parse_verification_output"""
-        import string
-
-        # Extract confidence score from the response first
-        confidence = self._extract_confidence_score(completion)
-
-        # Use the same logic as parse_verification_output for score calculation
-        generated_answer = completion.strip().lower()
-        is_supported = 0.0
-        raw_response = "False"
-
-        if "true" in generated_answer or "false" in generated_answer:
-            if "true" in generated_answer and "false" not in generated_answer:
-                is_supported = 1.0
-                raw_response = "True"
-            elif "false" in generated_answer and "true" not in generated_answer:
-                is_supported = 0.0
-                raw_response = "False"
-            else:
-                # If the last occurrence of 'true' appears later than 'false' in the output, then think the conclusion is true.
-                is_supported = generated_answer.rindex("true") > generated_answer.rindex("false")
-                is_supported = 1.0 if is_supported else 0.0
-                raw_response = "True" if is_supported else "False"
-        else:
-            generated_answer = generated_answer.translate(str.maketrans("", "", string.punctuation)).split()
-            is_supported = all(
-                [keyword not in generated_answer for keyword in ["not", "cannot", "unknown", "information"]])
-            is_supported = 1.0 if is_supported else 0.0
-            raw_response = "True" if is_supported else "False"
-
-        return raw_response, is_supported, confidence
-
-    def _extract_confidence_score(self, completion: str) -> float:
-        """Extract confidence score from completion text"""
-        import re
-
-        # Look for confidence patterns like "Confidence: 0.8" or "[Confidence: 0.8]"
-        confidence_patterns = [
-            r'confidence:\s*(\d+\.?\d*)',
-            r'\[confidence:\s*(\d+\.?\d*)\]',
-            r'confidence\s*=\s*(\d+\.?\d*)',
-            r'confidence\s*(\d+\.?\d*)',
-        ]
-
-        for pattern in confidence_patterns:
-            match = re.search(pattern, completion.lower())
-            if match:
-                try:
-                    confidence = float(match.group(1))
-                    # Ensure confidence is between 0.0 and 1.0
-                    return max(0.0, min(1.0, confidence))
-                except ValueError:
-                    continue
-
-        # Look for percentage patterns like "80%" or "80 percent"
-        percentage_patterns = [
-            r'(\d+\.?\d*)\s*%',
-            r'(\d+\.?\d*)\s*percent',
-        ]
-
-        for pattern in percentage_patterns:
-            match = re.search(pattern, completion.lower())
-            if match:
-                try:
-                    percentage = float(match.group(1))
-                    return max(0.0, min(1.0, percentage / 100.0))
-                except ValueError:
-                    continue
-
-        # Look for word-based confidence indicators
-        completion_lower = completion.lower()
-        if any(word in completion_lower for word in ['very confident', 'highly confident', 'extremely confident']):
-            return 0.9
-        elif any(word in completion_lower for word in ['confident', 'certain', 'sure']):
-            return 0.8
-        elif any(word in completion_lower for word in ['somewhat confident', 'moderately confident']):
-            return 0.6
-        elif any(word in completion_lower for word in ['uncertain', 'unsure', 'not sure']):
-            return 0.3
-        elif any(word in completion_lower for word in ['very uncertain', 'highly uncertain']):
-            return 0.1
-
-        # Default confidence based on response clarity
-        if any(word in completion_lower for word in ['true', 'false', 'correct', 'incorrect']):
-            return 0.7  # Medium confidence for clear responses
-        else:
-            return 0.4  # Low confidence for unclear responses
 
     def _generate_verification_reasoning_steps(self) -> str:
         """Generate dynamic reasoning steps for verification based on the reasoning_steps parameter"""
