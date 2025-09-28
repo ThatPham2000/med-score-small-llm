@@ -127,40 +127,37 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
         return verifications
 
     def _parse_reasoning_response_with_confidence(self, completion: str) -> tuple:
-        """Parse reasoning response to extract True/False, score, and confidence"""
-        lines = completion.strip().split('\n')
+        """Parse reasoning response to extract True/False, score, and confidence using same methodology as parse_verification_output"""
+        import string
 
-        # Initialize default values
-        raw_response = "False"
-        score = 0.0
-        confidence = 0.5  # Default confidence
-
-        # Look for True/False in the response
-        for line in lines:
-            line = line.strip()
-            if line.lower().startswith('true'):
-                raw_response = "True"
-                score = 1.0
-                break
-            elif line.lower().startswith('false'):
-                raw_response = "False"
-                score = 0.0
-                break
-
-        # If no clear True/False found, try to infer from content
-        if raw_response == "False" and score == 0.0:
-            completion_lower = completion.lower()
-            if any(word in completion_lower for word in ['true', 'correct', 'accurate', 'valid']):
-                raw_response = "True"
-                score = 1.0
-            elif any(word in completion_lower for word in ['false', 'incorrect', 'inaccurate', 'invalid']):
-                raw_response = "False"
-                score = 0.0
-
-        # Extract confidence score from the response
+        # Extract confidence score from the response first
         confidence = self._extract_confidence_score(completion)
 
-        return raw_response, score, confidence
+        # Use the same logic as parse_verification_output for score calculation
+        generated_answer = completion.strip().lower()
+        is_supported = 0.0
+        raw_response = "False"
+
+        if "true" in generated_answer or "false" in generated_answer:
+            if "true" in generated_answer and "false" not in generated_answer:
+                is_supported = 1.0
+                raw_response = "True"
+            elif "false" in generated_answer and "true" not in generated_answer:
+                is_supported = 0.0
+                raw_response = "False"
+            else:
+                # If the last occurrence of 'true' appears later than 'false' in the output, then think the conclusion is true.
+                is_supported = generated_answer.rindex("true") > generated_answer.rindex("false")
+                is_supported = 1.0 if is_supported else 0.0
+                raw_response = "True" if is_supported else "False"
+        else:
+            generated_answer = generated_answer.translate(str.maketrans("", "", string.punctuation)).split()
+            is_supported = all(
+                [keyword not in generated_answer for keyword in ["not", "cannot", "unknown", "information"]])
+            is_supported = 1.0 if is_supported else 0.0
+            raw_response = "True" if is_supported else "False"
+
+        return raw_response, is_supported, confidence
 
     def _extract_confidence_score(self, completion: str) -> float:
         """Extract confidence score from completion text"""
