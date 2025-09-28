@@ -26,6 +26,10 @@ class DecomposerSmallLLM(Decomposer):
         """Enhanced system prompt with chain-of-thought reasoning for small LLMs"""
         # Generate dynamic reasoning steps based on the reasoning_steps parameter
         reasoning_steps_text = self._generate_reasoning_steps()
+        reasoning_format = self._generate_reasoning_format()
+
+        # Generate dynamic examples based on reasoning steps
+        examples = self._generate_examples()
 
         return f"""You are a medical expert in evaluating how factual a medical sentence is. You break down a sentence into as many facts as possible using step-by-step reasoning.
 
@@ -38,42 +42,13 @@ If there is an overly specific entity such as "Your partner" or vague references
 
 REASONING FORMAT:
 Think step by step:
-{self._generate_reasoning_format()}
+{reasoning_format}
 
 If there is no verifiable fact in the sentence, please write "No verifiable claim".
 
 Here are some examples with reasoning:
 
-Context: I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit. \n\n Considering your tetanus vaccine expired in 2020 and you've got a dirty wound from the Spartan race, your doctor recommends getting a tetanus booster vaccine as soon as possible. They also mentioned that you were due for a booster anyway since it's been more than 3 years since your last vaccine.\n\nYour doctor is a bit puzzled as to why you were given IGG shots instead of a vaccine during your last visit, but that's not a concern for now. They just want to make sure you get the booster vaccine to be on the safe side. It's best to schedule an appointment for the booster vaccine as soon as possible to avoid any potential risks.
-
-Please breakdown the following sentence into independent facts: I spoke to your doctor and they wanted to address your concerns about tetanus.
-
-Reasoning:
-1. Main concepts: doctor consultation, tetanus concerns
-2. Facts to extract: None - this is a personal narrative about speaking to a doctor
-3. Verifiability: This is a subjective personal experience, not a verifiable medical fact
-
-Facts:
-- No verifiable claim
-
-Context: I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.\n\nThe doctor mentioned that the anabolic cycle your partner is on is quite intense and requires careful monitoring for potential issues such as infertility, mood swings, and problems related to weight gain, including snoring and possible sleep apnea. They also emphasized the importance of considering the long-term effects of using these substances, particularly when they are stopped.\n\nThe doctor's primary concern is that your partner's underlying condition, Addison's disease, may not significantly complicate things if well-treated, but it could become an issue when the anabolic cycle is stopped. They strongly advise that your partner consult with a medical professional, ideally their endocrinologist, to discuss the potential risks and consequences of using these substances, especially given their pre-existing condition.\n\nIt's essential to have an open and honest conversation with a healthcare professional to ensure your partner's safety and well-being. I would encourage you to support your partner in seeking medical advice, and I'm happy to facilitate a discussion with their doctor if needed.
-
-Please breakdown the following sentence into independent facts: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
-
-Reasoning:
-1. Main concepts: substances, muscle health, bone health, risks, side effects
-2. Facts to extract: 
-   - Substances can have positive effects on muscle health
-   - Substances can have positive effects on bone health  
-   - Substances carry risks
-   - Substances carry side effects
-3. Verifiability: These are objective medical facts about substance effects
-
-Facts:
-- Anabolic steroids may have positive effects on muscle health.
-- Anabolic steroids may have positive effects on bone health.
-- Anabolic steroids may also carry significant risks.
-- Anabolic steroids may carry potential side effects.
+{examples}
 
 Now, for your task, follow the same reasoning process."""
 
@@ -134,6 +109,177 @@ Facts:
                 decompositions.append(decomp)
 
         return decompositions
+
+    def _generate_examples(self) -> str:
+        """Generate dynamic examples based on reasoning steps"""
+        if self.reasoning_steps == 1:
+            return """Context: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Please breakdown the following sentence into independent facts: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Reasoning:
+1. What verifiable medical facts can be extracted from this sentence? - None, this is a personal narrative about speaking to a doctor
+
+Facts:
+- No verifiable claim
+
+Context: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Please breakdown the following sentence into independent facts: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Reasoning:
+1. What verifiable medical facts can be extracted from this sentence? - Substances can have positive effects on muscle health, bone health, and carry risks and side effects
+
+Facts:
+- Anabolic steroids may have positive effects on muscle health.
+- Anabolic steroids may have positive effects on bone health.
+- Anabolic steroids may also carry significant risks.
+- Anabolic steroids may carry potential side effects."""
+
+        elif self.reasoning_steps == 2:
+            return """Context: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Please breakdown the following sentence into independent facts: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Reasoning:
+1. What are the main medical concepts here? - doctor consultation, tetanus concerns
+2. What facts can be extracted from each concept? - None, this is a personal narrative
+
+Facts:
+- No verifiable claim
+
+Context: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Please breakdown the following sentence into independent facts: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Reasoning:
+1. What are the main medical concepts here? - substances, muscle health, bone health, risks, side effects
+2. What facts can be extracted from each concept? - Substances can have positive effects on muscle health, bone health, and carry risks and side effects
+
+Facts:
+- Anabolic steroids may have positive effects on muscle health.
+- Anabolic steroids may have positive effects on bone health.
+- Anabolic steroids may also carry significant risks.
+- Anabolic steroids may carry potential side effects."""
+
+        elif self.reasoning_steps == 3:
+            return """Context: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Please breakdown the following sentence into independent facts: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Reasoning:
+1. What are the main medical concepts here? - doctor consultation, tetanus concerns
+2. What facts can be extracted from each concept? - None, this is a personal narrative about speaking to a doctor
+3. Are these facts verifiable and objective? - No, this is a subjective personal experience
+
+Facts:
+- No verifiable claim
+
+Context: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Please breakdown the following sentence into independent facts: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Reasoning:
+1. What are the main medical concepts here? - substances, muscle health, bone health, risks, side effects
+2. What facts can be extracted from each concept? - Substances can have positive effects on muscle health, bone health, and carry risks and side effects
+3. Are these facts verifiable and objective? - Yes, these are objective medical facts about substance effects
+
+Facts:
+- Anabolic steroids may have positive effects on muscle health.
+- Anabolic steroids may have positive effects on bone health.
+- Anabolic steroids may also carry significant risks.
+- Anabolic steroids may carry potential side effects."""
+
+        elif self.reasoning_steps == 4:
+            return """Context: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Please breakdown the following sentence into independent facts: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Reasoning:
+1. What are the main medical concepts here? - doctor consultation, tetanus concerns
+2. What facts can be extracted from each concept? - None, this is a personal narrative about speaking to a doctor
+3. Are these facts verifiable and objective? - No, this is a subjective personal experience
+4. Are these facts complete and contextually appropriate? - N/A, no verifiable facts
+
+Facts:
+- No verifiable claim
+
+Context: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Please breakdown the following sentence into independent facts: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Reasoning:
+1. What are the main medical concepts here? - substances, muscle health, bone health, risks, side effects
+2. What facts can be extracted from each concept? - Substances can have positive effects on muscle health, bone health, and carry risks and side effects
+3. Are these facts verifiable and objective? - Yes, these are objective medical facts about substance effects
+4. Are these facts complete and contextually appropriate? - Yes, they are complete and contextually appropriate
+
+Facts:
+- Anabolic steroids may have positive effects on muscle health.
+- Anabolic steroids may have positive effects on bone health.
+- Anabolic steroids may also carry significant risks.
+- Anabolic steroids may carry potential side effects."""
+
+        elif self.reasoning_steps == 5:
+            return """Context: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Please breakdown the following sentence into independent facts: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Reasoning:
+1. What are the main medical concepts here? - doctor consultation, tetanus concerns
+2. What facts can be extracted from each concept? - None, this is a personal narrative about speaking to a doctor
+3. Are these facts verifiable and objective? - No, this is a subjective personal experience
+4. Are these facts complete and contextually appropriate? - N/A, no verifiable facts
+5. Are these facts accurate and comprehensive? - N/A, no verifiable facts
+
+Facts:
+- No verifiable claim
+
+Context: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Please breakdown the following sentence into independent facts: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Reasoning:
+1. What are the main medical concepts here? - substances, muscle health, bone health, risks, side effects
+2. What facts can be extracted from each concept? - Substances can have positive effects on muscle health, bone health, and carry risks and side effects
+3. Are these facts verifiable and objective? - Yes, these are objective medical facts about substance effects
+4. Are these facts complete and contextually appropriate? - Yes, they are complete and contextually appropriate
+5. Are these facts accurate and comprehensive? - Yes, they accurately represent the medical information
+
+Facts:
+- Anabolic steroids may have positive effects on muscle health.
+- Anabolic steroids may have positive effects on bone health.
+- Anabolic steroids may also carry significant risks.
+- Anabolic steroids may carry potential side effects."""
+
+        else:
+            # Default to 3 steps for any other value
+            return """Context: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Please breakdown the following sentence into independent facts: I spoke to your doctor and they wanted to address your concerns about tetanus.
+
+Reasoning:
+1. What are the main medical concepts here? - doctor consultation, tetanus concerns
+2. What facts can be extracted from each concept? - None, this is a personal narrative about speaking to a doctor
+3. Are these facts verifiable and objective? - No, this is a subjective personal experience
+
+Facts:
+- No verifiable claim
+
+Context: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Please breakdown the following sentence into independent facts: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+
+Reasoning:
+1. What are the main medical concepts here? - substances, muscle health, bone health, risks, side effects
+2. What facts can be extracted from each concept? - Substances can have positive effects on muscle health, bone health, and carry risks and side effects
+3. Are these facts verifiable and objective? - Yes, these are objective medical facts about substance effects
+
+Facts:
+- Anabolic steroids may have positive effects on muscle health.
+- Anabolic steroids may have positive effects on bone health.
+- Anabolic steroids may also carry significant risks.
+- Anabolic steroids may carry potential side effects."""
 
     def _generate_reasoning_steps(self) -> str:
         """Generate dynamic reasoning steps based on the reasoning_steps parameter"""
