@@ -1,8 +1,7 @@
 from typing import List, Dict, Any
+
 from decomposer import Decomposer
 from llm import LLM
-from prompts import MEDSCORE_PROMPT
-from utils import process_claim
 
 
 class DecomposerSmallLLM(Decomposer):
@@ -14,28 +13,20 @@ class DecomposerSmallLLM(Decomposer):
     3. Adding context-aware decomposition
     4. Using few-shot examples with reasoning
     """
-    
+
     def __init__(
             self,
             llm: LLM = None,
             reasoning_steps: int = 3,
-            use_chain_of_thought: bool = True,
     ):
         super().__init__(llm=llm)
         self.reasoning_steps = reasoning_steps
-        self.use_chain_of_thought = use_chain_of_thought
 
     def get_system_prompt(self) -> str:
         """Enhanced system prompt with chain-of-thought reasoning for small LLMs"""
-        if self.use_chain_of_thought:
-            return self._get_enhanced_medscore_prompt()
-        return MEDSCORE_PROMPT
-
-    def _get_enhanced_medscore_prompt(self) -> str:
-        """Enhanced MedScore prompt with reasoning steps for small language models"""
         # Generate dynamic reasoning steps based on the reasoning_steps parameter
         reasoning_steps_text = self._generate_reasoning_steps()
-        
+
         return f"""You are a medical expert in evaluating how factual a medical sentence is. You break down a sentence into as many facts as possible using step-by-step reasoning.
 
 REASONING PROCESS:
@@ -88,9 +79,8 @@ Now, for your task, follow the same reasoning process."""
 
     def format_input(self, context: str, sentence: str) -> str:
         """Enhanced input formatting with reasoning prompts"""
-        if self.use_chain_of_thought:
-            reasoning_format = self._generate_reasoning_format()
-            return f"""Context: {context}
+        reasoning_format = self._generate_reasoning_format()
+        return f"""Context: {context}
 
 Please breakdown the following sentence into independent facts: {sentence}
 
@@ -99,57 +89,50 @@ Reasoning:
 
 Facts:
 """
-        else:
-            return f"Context: {context}\nPlease breakdown the following sentence into independent facts: {sentence}\nFacts:\n"
 
     def format_completions(self, decomp_input: List[Dict[str, Any]], completions: List[str]) -> List[Dict[str, Any]]:
         """Enhanced completion formatting that handles reasoning steps"""
         decompositions = []
         for d_input, completion in zip(decomp_input, completions):
             # Extract facts from completion, handling reasoning format
-            if self.use_chain_of_thought:
-                # Find the "Facts:" section and extract claims from there
-                lines = completion.split("\n")
-                facts_started = False
-                claim_list = []
-                
-                for line in lines:
-                    if "Facts:" in line:
-                        facts_started = True
+            # Find the "Facts:" section and extract claims from there
+            lines = completion.split("\n")
+            facts_started = False
+            claim_list = []
+
+            for line in lines:
+                if "Facts:" in line:
+                    facts_started = True
+                    continue
+                if facts_started and line.strip():
+                    # Skip reasoning lines that start with numbers or "Reasoning:"
+                    # Handle dynamic number of reasoning steps
+                    reasoning_patterns = tuple(f"{i}." for i in range(1, self.reasoning_steps + 1))
+                    if line.strip().startswith(reasoning_patterns + ("Reasoning:", "Think")):
                         continue
-                    if facts_started and line.strip():
-                        # Skip reasoning lines that start with numbers or "Reasoning:"
-                        # Handle dynamic number of reasoning steps
-                        reasoning_patterns = tuple(f"{i}." for i in range(1, self.reasoning_steps + 1))
-                        if line.strip().startswith(reasoning_patterns + ("Reasoning:", "Think")):
-                            continue
-                        # Extract claim from bullet point
-                        if line.strip().startswith("- "):
-                            claim = line.strip()[2:].strip()
-                            if claim and claim != "No verifiable claim":
-                                claim_list.append(claim)
-                        elif line.strip() and not line.strip().startswith(("Context:", "Please breakdown")):
-                            # Handle cases where facts don't start with bullet points
-                            claim = line.strip()
-                            if claim and claim != "No verifiable claim":
-                                claim_list.append(claim)
-            else:
-                # Standard processing for non-reasoning format
-                claim_list = completion.split("\n")
-                claim_list = process_claim(claim_list)
-            
+                    # Extract claim from bullet point
+                    if line.strip().startswith("- "):
+                        claim = line.strip()[2:].strip()
+                        if claim and claim != "No verifiable claim":
+                            claim_list.append(claim)
+                    elif line.strip() and not line.strip().startswith(("Context:", "Please breakdown")):
+                        # Handle cases where facts don't start with bullet points
+                        claim = line.strip()
+                        if claim and claim != "No verifiable claim":
+                            claim_list.append(claim)
+
             # Process claims similar to original implementation
             for idx, claim in enumerate(claim_list):
                 decomp = {k: v for k, v in d_input.items() if k != "context"}
                 decomp["claim"] = claim
                 decomp["claim_id"] = idx
                 decompositions.append(decomp)
-            
+
             if not claim_list:
                 decomp = {k: v for k, v in d_input.items() if k != "context"}
                 decomp["claim"] = None
                 decompositions.append(decomp)
-        
+
         return decompositions
 
     def _generate_reasoning_steps(self) -> str:
