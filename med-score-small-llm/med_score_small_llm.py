@@ -16,7 +16,6 @@ from llm_openai import LLMOpenAI
 from utils import parse_sentences
 from verifier_internal import VerifierInternal
 from verifier_provided_evidence import VerifierProvidedEvidence
-from verifier_small_llm import VerifierSmallLLM
 from verifier_internal_small_llm import VerifierInternalSmallLLM
 from verifier_provided_evidence_small_llm import VerifierProvidedEvidenceSmallLLM
 
@@ -86,13 +85,6 @@ def initialize_verifier(
         if provided_evidence is None:
             raise InvalidArgumentException("Provided evidence is required for 'provided' verification mode")
         return VerifierProvidedEvidence(provided_evidence, llm)
-    if mode == "small_llm":
-        return VerifierSmallLLM(
-            llm=llm,
-            use_chain_of_thought=use_chain_of_thought,
-            confidence_threshold=confidence_threshold,
-            reasoning_steps=reasoning_steps
-        )
     if mode == "internal_small_llm":
         return VerifierInternalSmallLLM(
             llm=llm,
@@ -217,8 +209,8 @@ def parse_args():
 
     # Verification
     parser.add_argument("--verification_mode", type=str,
-                        choices=["internal", "provided", "small_llm", "internal_small_llm", "provided_small_llm"],
-                        default="small_llm", help="Verification mode")
+                        choices=["internal", "provided", "internal_small_llm", "provided_small_llm"],
+                        default="internal_small_llm", help="Verification mode")
     parser.add_argument("--verification_llm_provider", type=str, choices=["ollama", "openapi"],
                         default="ollama", help="LLM provider for verification")
     parser.add_argument("--verification_model_name", type=str, default="gemma3:12b",
