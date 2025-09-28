@@ -1,8 +1,7 @@
 from typing import List, Dict, Any
 
-from prompts import INTERNAL_KNOWLEDGE_PROMPT
-from verifier import Verifier
 from llm import LLM
+from verifier import Verifier
 
 
 class VerifierInternalSmallLLM(Verifier):
@@ -19,12 +18,10 @@ class VerifierInternalSmallLLM(Verifier):
     def __init__(
             self,
             llm: LLM = None,
-            use_chain_of_thought: bool = True,
             confidence_threshold: float = 0.7,
             reasoning_steps: int = 3,
     ):
         super().__init__(llm=llm)
-        self.use_chain_of_thought = use_chain_of_thought
         self.confidence_threshold = confidence_threshold
         self.reasoning_steps = reasoning_steps
 
@@ -40,13 +37,9 @@ class VerifierInternalSmallLLM(Verifier):
         """Prepare messages with enhanced reasoning prompts for small LLMs using internal knowledge"""
         messages = []
         for d in verification_input:
-            if self.use_chain_of_thought:
-                formatted_input = self._get_enhanced_verification_prompt(d['claim'])
-                system_prompt = self._get_enhanced_system_prompt()
-            else:
-                formatted_input = f"""Using your own knowledge, answer the question.\n\nInput: {d['claim']} True or False?\n\nOutput:"""
-                system_prompt = INTERNAL_KNOWLEDGE_PROMPT
-            
+            formatted_input = self._get_enhanced_verification_prompt(d['claim'])
+            system_prompt = self._get_enhanced_system_prompt()
+
             messages.append([
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": formatted_input}
@@ -57,7 +50,7 @@ class VerifierInternalSmallLLM(Verifier):
         """Enhanced system prompt with reasoning for small language models using internal knowledge"""
         reasoning_steps_text = self._generate_verification_reasoning_steps()
         reasoning_format = self._generate_verification_reasoning_format()
-        
+
         return f"""You are an assistant who verifies whether a claim from a medical response is True or False using step-by-step reasoning and your own knowledge. 
 
 REASONING PROCESS:
@@ -88,42 +81,38 @@ After your reasoning, also provide a confidence score from 0.0 to 1.0 indicating
 
 Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence: X.X]"""
 
-    def format_completions(self, verification_input: List[Dict[str, Any]], completions: List[str]) -> List[Dict[str, Any]]:
+    def format_completions(self, verification_input: List[Dict[str, Any]], completions: List[str]) -> List[
+        Dict[str, Any]]:
         """Enhanced completion formatting that handles reasoning, confidence, and threshold filtering"""
         verifications = []
         for d_input, completion in zip(verification_input, completions):
             # Extract True/False, reasoning, and confidence from completion
-            if self.use_chain_of_thought:
-                raw_response, score, confidence = self._parse_reasoning_response_with_confidence(completion)
-            else:
-                raw_response = completion.strip()
-                score = 1.0 if raw_response.lower().startswith('true') else 0.0
-                confidence = 1.0  # Default confidence for non-chain-of-thought
-            
+            raw_response, score, confidence = self._parse_reasoning_response_with_confidence(completion)
+
             # Apply confidence threshold filtering
             if confidence < self.confidence_threshold:
                 # If confidence is below threshold, mark as uncertain
                 score = 0.0  # Treat low-confidence verifications as False
                 raw_response = f"[LOW CONFIDENCE] {raw_response}"
-            
+
             verification = {k: v for k, v in d_input.items()}
             verification["raw"] = raw_response
             verification["score"] = score
             verification["confidence"] = confidence
             verification["meets_threshold"] = confidence >= self.confidence_threshold
             verifications.append(verification)
-        
+
         return verifications
 
     def _parse_reasoning_response_with_confidence(self, completion: str) -> tuple:
         """Parse reasoning response to extract True/False, score, and confidence"""
         lines = completion.strip().split('\n')
-        
+
         # Initialize default values
         raw_response = "False"
         score = 0.0
         confidence = 0.5  # Default confidence
-        
+
         # Look for True/False in the response
         for line in lines:
             line = line.strip()
@@ -135,7 +124,7 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
                 raw_response = "False"
                 score = 0.0
                 break
-        
+
         # If no clear True/False found, try to infer from content
         if raw_response == "False" and score == 0.0:
             completion_lower = completion.lower()
@@ -145,16 +134,16 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
             elif any(word in completion_lower for word in ['false', 'incorrect', 'inaccurate', 'invalid']):
                 raw_response = "False"
                 score = 0.0
-        
+
         # Extract confidence score from the response
         confidence = self._extract_confidence_score(completion)
-        
+
         return raw_response, score, confidence
 
     def _extract_confidence_score(self, completion: str) -> float:
         """Extract confidence score from completion text"""
         import re
-        
+
         # Look for confidence patterns like "Confidence: 0.8" or "[Confidence: 0.8]"
         confidence_patterns = [
             r'confidence:\s*(\d+\.?\d*)',
@@ -162,7 +151,7 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
             r'confidence\s*=\s*(\d+\.?\d*)',
             r'confidence\s*(\d+\.?\d*)',
         ]
-        
+
         for pattern in confidence_patterns:
             match = re.search(pattern, completion.lower())
             if match:
@@ -172,13 +161,13 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
                     return max(0.0, min(1.0, confidence))
                 except ValueError:
                     continue
-        
+
         # Look for percentage patterns like "80%" or "80 percent"
         percentage_patterns = [
             r'(\d+\.?\d*)\s*%',
             r'(\d+\.?\d*)\s*percent',
         ]
-        
+
         for pattern in percentage_patterns:
             match = re.search(pattern, completion.lower())
             if match:
@@ -187,7 +176,7 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
                     return max(0.0, min(1.0, percentage / 100.0))
                 except ValueError:
                     continue
-        
+
         # Look for word-based confidence indicators
         completion_lower = completion.lower()
         if any(word in completion_lower for word in ['very confident', 'highly confident', 'extremely confident']):
@@ -200,7 +189,7 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
             return 0.3
         elif any(word in completion_lower for word in ['very uncertain', 'highly uncertain']):
             return 0.1
-        
+
         # Default confidence based on response clarity
         if any(word in completion_lower for word in ['true', 'false', 'correct', 'incorrect']):
             return 0.7  # Medium confidence for clear responses
@@ -273,16 +262,16 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
                 "threshold_meeting_rate": 0.0,
                 "low_confidence_count": 0
             }
-        
+
         confidences = [v.get("confidence", 0.0) for v in verifications]
         meets_threshold = [v.get("meets_threshold", False) for v in verifications]
-        
+
         # Calculate statistics
         total_verifications = len(verifications)
         average_confidence = sum(confidences) / total_verifications if total_verifications > 0 else 0.0
         threshold_meeting_rate = sum(meets_threshold) / total_verifications if total_verifications > 0 else 0.0
         low_confidence_count = sum(1 for c in confidences if c < self.confidence_threshold)
-        
+
         # Confidence distribution
         confidence_ranges = {
             "very_high": sum(1 for c in confidences if c >= 0.9),
@@ -291,7 +280,7 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
             "low": sum(1 for c in confidences if 0.3 <= c < 0.5),
             "very_low": sum(1 for c in confidences if c < 0.3)
         }
-        
+
         return {
             "total_verifications": total_verifications,
             "average_confidence": round(average_confidence, 3),
@@ -305,10 +294,10 @@ Output: [True/False] - [Brief reasoning explaining your decision] - [Confidence:
             }
         }
 
-    def filter_by_confidence(self, verifications: List[Dict[str, Any]], 
-                        min_confidence: float = None) -> List[Dict[str, Any]]:
+    def filter_by_confidence(self, verifications: List[Dict[str, Any]],
+                             min_confidence: float = None) -> List[Dict[str, Any]]:
         """Filter verifications by confidence threshold"""
         if min_confidence is None:
             min_confidence = self.confidence_threshold
-        
+
         return [v for v in verifications if v.get("confidence", 0.0) >= min_confidence]
