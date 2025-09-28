@@ -17,6 +17,8 @@ from utils import parse_sentences
 from verifier_internal import VerifierInternal
 from verifier_provided_evidence import VerifierProvidedEvidence
 from verifier_small_llm import VerifierSmallLLM
+from verifier_internal_small_llm import VerifierInternalSmallLLM
+from verifier_provided_evidence_small_llm import VerifierProvidedEvidenceSmallLLM
 
 
 def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
@@ -86,6 +88,23 @@ def initialize_verifier(
         return VerifierProvidedEvidence(provided_evidence, llm)
     if mode == "small_llm":
         return VerifierSmallLLM(
+            llm=llm,
+            use_chain_of_thought=use_chain_of_thought,
+            confidence_threshold=confidence_threshold,
+            reasoning_steps=reasoning_steps
+        )
+    if mode == "internal_small_llm":
+        return VerifierInternalSmallLLM(
+            llm=llm,
+            use_chain_of_thought=use_chain_of_thought,
+            confidence_threshold=confidence_threshold,
+            reasoning_steps=reasoning_steps
+        )
+    if mode == "provided_small_llm":
+        if provided_evidence is None:
+            raise InvalidArgumentException("Provided evidence is required for 'provided_small_llm' verification mode")
+        return VerifierProvidedEvidenceSmallLLM(
+            provided_evidence=provided_evidence,
             llm=llm,
             use_chain_of_thought=use_chain_of_thought,
             confidence_threshold=confidence_threshold,
@@ -198,7 +217,7 @@ def parse_args():
 
     # Verification
     parser.add_argument("--verification_mode", type=str,
-                        choices=["internal", "provided", "small_llm"],
+                        choices=["internal", "provided", "small_llm", "internal_small_llm", "provided_small_llm"],
                         default="small_llm", help="Verification mode")
     parser.add_argument("--verification_llm_provider", type=str, choices=["ollama", "openapi"],
                         default="ollama", help="LLM provider for verification")
