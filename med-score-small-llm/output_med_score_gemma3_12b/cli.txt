@@ -19,3 +19,31 @@ Score statistics:
   Max: 1.0000
 
 Process finished with exit code 0
+
+
+
+
+
+
+
+/Users/that.phamvan/my_ws/master/med-score-small-llm/.venv/bin/python /Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/evaluation_metrics.py /Users/that.phamvan/my_ws/master/med-score-small-llm/demo/GPT4o_medscore_output.jsonl /Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/output_med_score_gemma3_12b/medscore_internal_med_score_output.jsonl /Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/output_med_score_gemma3_12b/evaluation_metrics.json
+Comprehensive report saved to /Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/output_med_score_gemma3_12b/evaluation_metrics.json
+
+=== MedScore Small LLM vs Baseline Comparison ===
+Overall Performance:
+  Baseline Mean Score: 0.8228
+  Small LLM Mean Score: 0.7697
+  Difference: -0.0531
+  Relative Improvement: -6.4%
+  Correlation: 0.6972
+
+Claim Level Analysis:
+  Baseline Claims: 213 (Accuracy: 0.826)
+  Small LLM Claims: 251 (Accuracy: 0.785)
+
+Response Level Analysis:
+  Total Responses: 20
+  Mean Absolute Difference: 0.1277
+  Agreement Rate: 0.500
+
+Process finished with exit code 0
