@@ -1,0 +1,1 @@
+--input_file="/Users/that.phamvan/my_ws/master/med-score-small-llm/demo/AskDocs.jsonl" --output_dir="output_small_llm_gemma3_12b" --decomposition_mode="small_llm" --decomposition_llm_provider="ollama" --decomposition_model_name="gemma3:12b" --verification_mode="internal_small_llm" --verification_llm_provider="ollama" --verification_model_name="gemma3:12b" --reasoning_steps=5
