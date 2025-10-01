@@ -1,0 +1,21 @@
+--input_file="/Users/that.phamvan/my_ws/master/med-score-small-llm/demo/AskDocs.jsonl" --output_dir="output_med_score_gemma3_12b" --decomposition_mode="medscore" --decomposition_llm_provider="ollama" --decomposition_model_name="gemma3:12b" --verification_mode="internal" --verification_llm_provider="ollama" --verification_model_name="gemma3:12b" --reasoning_steps=5
+
+
+Running decomposition with medscore mode...
+Decomposer process: 5it [24:27, 293.44s/it]
+Running verification with internal mode...
+Verifier process: 8it [00:59,  7.38s/it]
+
+=== MedScore Results (medscore + internal) ===
+Total responses evaluated: 20
+Responses with valid scores: 20
+Final MedScore: 0.7697
+Results saved to: output_med_score_gemma3_12b/medscore_internal_med_score_output.jsonl
+Score statistics:
+  Mean: 0.7697
+  Median: 0.7947
+  Std Dev: 0.2178
+  Min: 0.2000
+  Max: 1.0000
+
+Process finished with exit code 0
