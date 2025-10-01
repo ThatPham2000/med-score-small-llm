@@ -1,0 +1,87 @@
+{
+  "overall_metrics": {
+    "baseline": {
+      "count": 20,
+      "mean": 0.8227552349611174,
+      "median": 0.8786764705882353,
+      "std": 0.18488613427486336,
+      "min": 0.3,
+      "max": 1.0
+    },
+    "small_llm": {
+      "count": 20,
+      "mean": 0.8049737934344712,
+      "median": 0.820855614973262,
+      "std": 0.21769512617538325,
+      "min": 0.16666666666666666,
+      "max": 1.0
+    },
+    "difference": {
+      "mean_diff": -0.01778144152664618,
+      "relative_improvement": -2.161206732095301,
+      "correlation": 0.7297296188307862
+    }
+  },
+  "claim_level_metrics": {
+    "baseline_claims": {
+      "total": 213,
+      "accuracy": 0.8262910798122066,
+      "true_claims": 176,
+      "false_claims": 37
+    },
+    "small_llm_claims": {
+      "total": 243,
+      "accuracy": 0.8065843621399177,
+      "true_claims": 196,
+      "false_claims": 47
+    },
+    "agreement": {
+      "exact_agreement": 0.6713615023474179,
+      "near_agreement": 0.6713615023474179
+    }
+  },
+  "response_level_metrics": {
+    "total_responses": 20,
+    "score_differences": [
+      0.0,
+      0.11428571428571432,
+      0.14130434782608692,
+      0.25,
+      0.09999999999999998,
+      0.08181818181818179,
+      0.125,
+      0.14901960784313728,
+      0.0,
+      0.0,
+      0.07692307692307698,
+      0.0,
+      0.43333333333333335,
+      0.016666666666666607,
+      0.09090909090909094,
+      0.0625,
+      0.2714285714285714,
+      0.0,
+      0.07189542483660127,
+      0.0714285714285714
+    ],
+    "agreement_threshold": 0.1,
+    "mean_absolute_difference": 0.10282562936495161,
+    "agreement_rate": 0.65
+  },
+  "decomposition_metrics": {
+    "baseline": {
+      "avg_claims_per_response": 10.65,
+      "total_claims": 213
+    },
+    "small_llm": {
+      "avg_claims_per_response": 12.15,
+      "total_claims": 243
+    }
+  },
+  "summary": {
+    "performance_comparison": "Small LLM achieved 0.805 vs Baseline 0.823",
+    "improvement": "-2.2% relative improvement",
+    "claim_accuracy": "Small LLM: 0.000, Baseline: 0.000",
+    "total_claims": "Small LLM extracted 0 claims vs Baseline 0 claims"
+  }
+}
