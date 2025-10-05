@@ -108,6 +108,32 @@ def generate_html(combined_data: Dict[str, Dict], output_path: str):
             background: #f8f9fa;
             padding: 20px;
             border-bottom: 1px solid #e1e5e9;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.3s ease;
+        }
+        
+        .response-header:hover {
+            background: #e9ecef;
+        }
+        
+        .response-header::after {
+            content: '▼';
+            float: right;
+            transition: transform 0.3s ease;
+        }
+        
+        .response-header.collapsed::after {
+            transform: rotate(-90deg);
+        }
+        
+        .response-content {
+            transition: max-height 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .response-content.collapsed {
+            max-height: 0;
         }
         
         .response-id {
@@ -145,6 +171,32 @@ def generate_html(combined_data: Dict[str, Dict], output_path: str):
             border-bottom: 1px solid #e1e5e9;
             font-weight: 600;
             color: #495057;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.3s ease;
+        }
+        
+        .sentence-header:hover {
+            background: #e9ecef;
+        }
+        
+        .sentence-header::after {
+            content: '▼';
+            float: right;
+            transition: transform 0.3s ease;
+        }
+        
+        .sentence-header.collapsed::after {
+            transform: rotate(-90deg);
+        }
+        
+        .sentence-content {
+            transition: max-height 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .sentence-content.collapsed {
+            max-height: 0;
         }
         
         .sentence-text {
@@ -344,25 +396,35 @@ def generate_html(combined_data: Dict[str, Dict], output_path: str):
         claims = medscore.get('claims', [])
         sentence_groups = group_claims_by_sentence(claims)
         
+        # Clean response_id for use in HTML IDs
+        clean_response_id = response_id.replace('-', '_').replace(' ', '_')
+        
         html_content += f"""
             <div class="response-card">
-                <div class="response-header">
+                <div class="response-header" id="response-header-{clean_response_id}" onclick="toggleResponse('{clean_response_id}')">
                     <div class="response-id">ID: {response_id}</div>
                     <div class="response-question">{askdocs.get('question', 'No question available')}</div>
                 </div>
                 
-                <div class="response-text">
-                    {askdocs.get('response', 'No response available')}
-                </div>
+                <div class="response-content" id="response-content-{clean_response_id}">
+                    <div class="response-text">
+                        {askdocs.get('response', 'No response available')}
+                    </div>
         """
         
         # Add each sentence group
+        sentence_index = 0
         for sentence, sentence_claims in sentence_groups.items():
+            # Create a unique sentence ID
+            sentence_id = f"sentence_{sentence_index}"
+            sentence_index += 1
+            
             html_content += f"""
                 <div class="sentence-group">
-                    <div class="sentence-header">Sentence Analysis</div>
-                    <div class="sentence-text">"{sentence}"</div>
-                    <div class="claims-container">
+                    <div class="sentence-header" id="sentence-header-{clean_response_id}-{sentence_id}" onclick="toggleSentence('{clean_response_id}', '{sentence_id}')">Sentence Analysis</div>
+                    <div class="sentence-content" id="sentence-content-{clean_response_id}-{sentence_id}">
+                        <div class="sentence-text">"{sentence}"</div>
+                        <div class="claims-container">
             """
             
             # Add each claim in this sentence
@@ -391,17 +453,55 @@ def generate_html(combined_data: Dict[str, Dict], output_path: str):
                 """
             
             html_content += """
+                        </div>
                     </div>
                 </div>
             """
         
         html_content += """
+                </div>
             </div>
         """
     
     html_content += """
         </div>
     </div>
+    
+    <script>
+        // Function to toggle response content
+        function toggleResponse(responseId) {
+            const header = document.getElementById('response-header-' + responseId);
+            const content = document.getElementById('response-content-' + responseId);
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                header.classList.remove('collapsed');
+            } else {
+                content.classList.add('collapsed');
+                header.classList.add('collapsed');
+            }
+        }
+        
+        // Function to toggle sentence content
+        function toggleSentence(responseId, sentenceId) {
+            const header = document.getElementById('sentence-header-' + responseId + '-' + sentenceId);
+            const content = document.getElementById('sentence-content-' + responseId + '-' + sentenceId);
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                header.classList.remove('collapsed');
+            } else {
+                content.classList.add('collapsed');
+                header.classList.add('collapsed');
+            }
+        }
+        
+        // Add click event listeners when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // All responses start expanded
+            console.log('Page loaded with dropdown functionality');
+        });
+    </script>
 </body>
 </html>
     """
@@ -417,7 +517,7 @@ def main():
     # File paths
     askdocs_path = "/Users/that.phamvan/my_ws/master/med-score-small-llm/data/AskDocs.jsonl"
     medscore_path = "/Users/that.phamvan/my_ws/master/med-score-small-llm/MedScore_baseline_results/Provided_medscore_output.jsonl"
-    output_path = "/Users/that.phamvan/my_ws/master/med-score-small-llm/medscore_visualization.html"
+    output_path = "/Users/that.phamvan/my_ws/master/med-score-small-llm/medscore_visualization_dropdown.html"
     
     print("Loading AskDocs data...")
     askdocs_data = load_jsonl(askdocs_path)
