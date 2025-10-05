@@ -27,14 +27,16 @@ class DecomposerSmallLLM(Decomposer):
             reasoning_steps: int = 3,
             enable_validation: bool = True,
             similarity_threshold: float = 0.8,
+            adaptive_thresholds: bool = True,
     ):
         super().__init__(llm=llm)
         self.reasoning_steps = reasoning_steps
         self.enable_validation = enable_validation
         self.similarity_threshold = similarity_threshold
+        self.adaptive_thresholds = adaptive_thresholds
 
     def get_system_prompt(self) -> str:
-        """Enhanced system prompt addressing the 7 MedScoreTaxonomy issues"""
+        """Enhanced system prompt addressing the 7 MedScoreTaxonomy issues with improved small LLM guidance"""
         # Generate dynamic reasoning steps based on the reasoning_steps parameter
         reasoning_steps_text = self._generate_reasoning_steps()
         reasoning_format = self._generate_reasoning_format()
@@ -43,6 +45,13 @@ class DecomposerSmallLLM(Decomposer):
         examples = self._generate_examples()
 
         return f"""You are a medical expert in evaluating how factual a medical sentence is. You break down a sentence into as many facts as possible using step-by-step reasoning while addressing the 7 MedScoreTaxonomy issues.
+
+CRITICAL INSTRUCTIONS FOR SMALL LLMs:
+- Focus on ONE medical concept per claim
+- Use simple, declarative sentences
+- Avoid complex medical jargon when possible
+- Extract facts that can be verified independently
+- Preserve all important medical modifiers and conditions
 
 REASONING PROCESS:
 {reasoning_steps_text}
@@ -97,11 +106,13 @@ Here are some examples with reasoning:
 Now, for your task, follow the same reasoning process."""
 
     def format_input(self, context: str, sentence: str) -> str:
-        """Enhanced input formatting with reasoning prompts"""
+        """Enhanced input formatting with reasoning prompts optimized for small LLMs"""
         reasoning_format = self._generate_reasoning_format()
         return f"""Context: {context}
 
 Please breakdown the following sentence into independent facts: {sentence}
+
+IMPORTANT: Extract ONE medical concept per claim. Use simple, declarative sentences.
 
 Reasoning:
 {reasoning_format}
@@ -158,6 +169,30 @@ Facts:
                 decompositions.append(decomp)
 
         return decompositions
+
+    def _calculate_adaptive_threshold(self, sentence: str) -> float:
+        """Calculate adaptive similarity threshold based on sentence complexity"""
+        if not self.adaptive_thresholds:
+            return self.similarity_threshold
+        
+        # Calculate sentence complexity factors
+        word_count = len(sentence.split())
+        medical_terms = len(re.findall(r'\b(?:patient|doctor|medical|treatment|condition|disease|symptom|diagnosis|therapy|medication|surgery|procedure)\b', sentence.lower()))
+        conditional_words = len(re.findall(r'\b(?:if|when|unless|provided|while|although|however|but|yet|despite|whereas)\b', sentence.lower()))
+        
+        # Adjust threshold based on complexity
+        base_threshold = self.similarity_threshold
+        
+        # More complex sentences need lower thresholds (more lenient)
+        if word_count > 20:
+            base_threshold -= 0.1
+        if medical_terms > 3:
+            base_threshold -= 0.05
+        if conditional_words > 2:
+            base_threshold -= 0.1
+            
+        # Ensure threshold stays within reasonable bounds
+        return max(0.3, min(0.9, base_threshold))
 
     def _generate_examples(self) -> str:
         """Generate dynamic examples based on reasoning steps"""
@@ -331,16 +366,16 @@ Facts:
 - Anabolic steroids may carry potential side effects."""
 
     def _generate_reasoning_steps(self) -> str:
-        """Generate dynamic reasoning steps based on the reasoning_steps parameter"""
+        """Generate dynamic reasoning steps based on the reasoning_steps parameter with enhanced small LLM guidance"""
         if self.reasoning_steps == 1:
-            return "1. Identify and extract all verifiable medical facts from the sentence"
+            return "1. Identify and extract all verifiable medical facts from the sentence (Focus on ONE concept per claim)"
         elif self.reasoning_steps == 2:
-            return """1. First, identify the main medical concepts in the sentence
-2. Then, extract verifiable facts from each concept"""
+            return """1. First, identify the main medical concepts in the sentence (Identify 2-3 key concepts)
+2. Then, extract verifiable facts from each concept (One simple fact per concept)"""
         elif self.reasoning_steps == 3:
-            return """1. First, identify the main medical concepts in the sentence
-2. Then, break down each concept into verifiable facts
-3. Finally, ensure each fact is objective and can be verified against reliable sources"""
+            return """1. First, identify the main medical concepts in the sentence (Identify key medical terms)
+2. Then, break down each concept into verifiable facts (Keep facts simple and declarative)
+3. Finally, ensure each fact is objective and can be verified against reliable sources (Check for "if", "when", "typically", etc.)"""
         elif self.reasoning_steps == 4:
             return """1. First, identify the main medical concepts in the sentence
 2. Then, break down each concept into verifiable facts
@@ -354,9 +389,9 @@ Facts:
 5. Finally, review and refine the extracted facts for accuracy and completeness"""
         else:
             # Default to 3 steps for any other value
-            return """1. First, identify the main medical concepts in the sentence
-2. Then, break down each concept into verifiable facts
-3. Finally, ensure each fact is objective and can be verified against reliable sources"""
+            return """1. First, identify the main medical concepts in the sentence (Identify key medical terms)
+2. Then, break down each concept into verifiable facts (Keep facts simple and declarative)
+3. Finally, ensure each fact is objective and can be verified against reliable sources (Check for "if", "when", "typically", etc.)"""
 
     def _generate_reasoning_format(self) -> str:
         """Generate dynamic reasoning format based on the reasoning_steps parameter"""
@@ -413,7 +448,7 @@ Facts:
             claim = self._resolve_context_dependencies(claim, context)
 
             # 6. Check for redundant claims
-            if self._is_redundant_claim(claim, validated_claims):
+            if self._is_redundant_claim(claim, validated_claims, sentence):
                 continue
 
             validated_claims.append(claim)
@@ -664,10 +699,13 @@ Facts:
         # If no direct match, return the first relevant entity
         return entities[0] if entities else None
 
-    def _is_redundant_claim(self, claim: str, existing_claims: List[str]) -> bool:
-        """Check if claim is redundant with existing claims using semantic similarity"""
+    def _is_redundant_claim(self, claim: str, existing_claims: List[str], sentence: str = "") -> bool:
+        """Check if claim is redundant with existing claims using semantic similarity with adaptive thresholds"""
         if not existing_claims:
             return False
+
+        # Use adaptive threshold if enabled
+        threshold = self._calculate_adaptive_threshold(sentence) if sentence else self.similarity_threshold
 
         try:
             # Use TF-IDF for semantic similarity
@@ -681,8 +719,8 @@ Facts:
 
             similarities = cosine_similarity(claim_vector, existing_vectors)[0]
 
-            # Check if any similarity exceeds threshold
-            return any(sim >= self.similarity_threshold for sim in similarities)
+            # Check if any similarity exceeds adaptive threshold
+            return any(sim >= threshold for sim in similarities)
 
         except Exception:
             # Fallback to simple word overlap
