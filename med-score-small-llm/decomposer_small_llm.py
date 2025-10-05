@@ -174,15 +174,19 @@ Facts:
         """Calculate adaptive similarity threshold based on sentence complexity"""
         if not self.adaptive_thresholds:
             return self.similarity_threshold
-        
+
         # Calculate sentence complexity factors
         word_count = len(sentence.split())
-        medical_terms = len(re.findall(r'\b(?:patient|doctor|medical|treatment|condition|disease|symptom|diagnosis|therapy|medication|surgery|procedure)\b', sentence.lower()))
-        conditional_words = len(re.findall(r'\b(?:if|when|unless|provided|while|although|however|but|yet|despite|whereas)\b', sentence.lower()))
-        
+        medical_terms = len(re.findall(
+            r'\b(?:patient|doctor|medical|treatment|condition|disease|symptom|diagnosis|therapy|medication|surgery|procedure)\b',
+            sentence.lower()))
+        conditional_words = len(
+            re.findall(r'\b(?:if|when|unless|provided|while|although|however|but|yet|despite|whereas)\b',
+                       sentence.lower()))
+
         # Adjust threshold based on complexity
         base_threshold = self.similarity_threshold
-        
+
         # More complex sentences need lower thresholds (more lenient)
         if word_count > 20:
             base_threshold -= 0.1
@@ -190,7 +194,7 @@ Facts:
             base_threshold -= 0.05
         if conditional_words > 2:
             base_threshold -= 0.1
-            
+
         # Ensure threshold stays within reasonable bounds
         return max(0.3, min(0.9, base_threshold))
 
