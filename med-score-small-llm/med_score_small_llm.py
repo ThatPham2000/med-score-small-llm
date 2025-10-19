@@ -15,9 +15,9 @@ from llm_ollama import LLMOllama
 from llm_openai import LLMOpenAI
 from utils import parse_sentences
 from verifier_internal import VerifierInternal
-from verifier_internal_small_llm import VerifierInternalSmallLLM
+# from verifier_internal_small_llm import VerifierInternalSmallLLM
 from verifier_provided_evidence import VerifierProvidedEvidence
-from verifier_provided_evidence_small_llm import VerifierProvidedEvidenceSmallLLM
+# from verifier_provided_evidence_small_llm import VerifierProvidedEvidenceSmallLLM
 
 
 def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
@@ -82,21 +82,21 @@ def initialize_verifier(
         if provided_evidence is None:
             raise InvalidArgumentException("Provided evidence is required for 'provided' verification mode")
         return VerifierProvidedEvidence(provided_evidence, llm)
-    if mode == "internal_small_llm":
-        return VerifierInternalSmallLLM(
-            llm=llm,
-            confidence_threshold=confidence_threshold,
-            reasoning_steps=reasoning_steps
-        )
-    if mode == "provided_small_llm":
-        if provided_evidence is None:
-            raise InvalidArgumentException("Provided evidence is required for 'provided_small_llm' verification mode")
-        return VerifierProvidedEvidenceSmallLLM(
-            provided_evidence=provided_evidence,
-            llm=llm,
-            confidence_threshold=confidence_threshold,
-            reasoning_steps=reasoning_steps
-        )
+    # if mode == "internal_small_llm":
+    #     return VerifierInternalSmallLLM(
+    #         llm=llm,
+    #         confidence_threshold=confidence_threshold,
+    #         reasoning_steps=reasoning_steps
+    #     )
+    # if mode == "provided_small_llm":
+    #     if provided_evidence is None:
+    #         raise InvalidArgumentException("Provided evidence is required for 'provided_small_llm' verification mode")
+    #     return VerifierProvidedEvidenceSmallLLM(
+    #         provided_evidence=provided_evidence,
+    #         llm=llm,
+    #         confidence_threshold=confidence_threshold,
+    #         reasoning_steps=reasoning_steps
+    #     )
 
     raise IllegalArgumentException(f"Unknown verification mode: {mode}")
 
@@ -232,6 +232,7 @@ if __name__ == '__main__':
     # Load data
     with jsonlines.open(args.input_file) as reader:
         dataset = [item for item in reader.iter()]
+    dataset = dataset[:1]
 
     # Handle provided evidence for 'provided' verification mode
     provided_evidence = None
