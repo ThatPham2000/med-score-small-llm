@@ -50,8 +50,8 @@ def initialize_decomposer(
 
     if mode == "small_llm":
         return DecomposerSmallLLM(
+            provider=decomposition_llm_provider,
             llm=llm,
-            reasoning_steps=reasoning_steps,
         )
     if mode == "medscore":
         return DecomposerMedScore(llm)
