@@ -3,7 +3,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 
-from llm_provider import LLMProvider
+from .llm_provider import LLMProvider
 
 
 @dataclass

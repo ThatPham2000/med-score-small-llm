@@ -68,5 +68,5 @@ class Decomposer(object):
     def get_system_prompt(self) -> Optional[str]:
         return None
 
-    def format_input(self, context: str, sentence: str) -> str:
-        raise NotImplementedError
+    def format_input(self, context: str, sentence: str) -> Optional[str]:
+        return None

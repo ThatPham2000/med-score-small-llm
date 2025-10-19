@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict, Any
 
-from llm_provider import LLMProvider
+from .llm_provider import LLMProvider
 
 
 @dataclass
@@ -103,7 +103,7 @@ Respond in JSON format:
 
 
 def main():
-    from llm_provider import create_llm_provider
+    from .llm_provider import create_llm_provider
     import time
 
     try:

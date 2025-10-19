@@ -2,8 +2,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from llm_provider import create_llm_provider
-from unified_pipeline import create_pipeline
+from .llm_provider import create_llm_provider
+from .unified_pipeline import create_pipeline
 
 
 def create_parser() -> argparse.ArgumentParser:

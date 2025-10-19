@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 
-from llm_provider import LLMProvider
+from .llm_provider import LLMProvider
 
 
 @dataclass

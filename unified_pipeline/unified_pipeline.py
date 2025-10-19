@@ -12,11 +12,11 @@ import time
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
 
-from agentic_tools import AgenticFramework
-from knowledge_grounding import SimpleRetriever
-from llm_provider import LLMProvider
-from query_analyzer import QueryAnalyzer
-from reasoning_strategies import ChainOfThoughtReasoner, TreeOfThoughtsReasoner
+from .agentic_tools import AgenticFramework
+from .knowledge_grounding import SimpleRetriever
+from .llm_provider import LLMProvider
+from .query_analyzer import QueryAnalyzer
+from .reasoning_strategies import ChainOfThoughtReasoner, TreeOfThoughtsReasoner
 
 
 @dataclass
@@ -364,7 +364,7 @@ def create_pipeline(
 # Main test function
 def main():
     """Test the optimized pipeline"""
-    from llm_provider import create_llm_provider
+    from .llm_provider import create_llm_provider
 
     print("OPTIMIZED UNIFIED PIPELINE - Test")
 
