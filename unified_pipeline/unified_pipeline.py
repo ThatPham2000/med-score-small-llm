@@ -225,7 +225,7 @@ class UnifiedPipeline:
             # Use chat with system prompt for atomic fact decomposition
             messages = [
                 {"role": "system",
-                 "content": self._build_medical_atomic_fact_decomposition__system_prompt(full_context)},
+                 "content": self._build_medical_atomic_fact_decomposition_system_prompt(full_context)},
                 {"role": "user", "content": query}
             ]
             answer = self.llm.chat(messages, temperature=0.3, max_tokens=10000)
@@ -240,7 +240,7 @@ Provide a clear, concise, and accurate answer:"""
             answer = self.llm.generate(prompt, temperature=0.3, max_tokens=10000)
         return answer.strip()
 
-    def _build_medical_atomic_fact_decomposition__system_prompt(self, full_context: str) -> str:
+    def _build_medical_atomic_fact_decomposition_system_prompt(self, full_context: str) -> str:
         """Full context in this case is the reasoning steps."""
         return f"""You are a medical expert in evaluating how factual a medical sentence is. You break down a sentence into as many facts as possible using step-by-step reasoning while addressing the 7 MedScoreTaxonomy issues.
 
@@ -251,60 +251,30 @@ CRITICAL INSTRUCTIONS:
 - Extract facts that can be verified independently
 - Preserve all important medical modifiers and conditions
 
-QUALITY REQUIREMENTS (Addressing 7 MedScoreTaxonomy Issues):
-
-1. UNVERIFIABLE CLAIMS: Filter out personal narratives, patient-specific interactions, and bedside manner statements. Exclude:
-   - Personal experiences ("I spoke with your doctor", "you are experiencing pain")
-   - Patient-specific interactions
-   - Bedside manner statements ("Your pain can be very tiring")
-
-2. HALLUCINATED CLAIMS: Ensure all claims are grounded in the original sentence:
-   - No additional information beyond the sentence
-   - No distortion of original meaning
-   - No irrelevant information
-
-3. INCOMPLETE CLAIMS: Preserve important modifiers and dependencies:
-   - Maintain conditional statements and modifiers
-   - Keep temporal and contextual information
-   - Preserve cause-effect relationships
-
-4. INCORRECTLY STRUCTURED CLAIMS: Transform to declarative format:
-   - Convert imperatives ("Take ibuprofen") to declaratives ("Taking ibuprofen is helpful for pain")
-   - Remove nested sub-clauses ("They said [claim]" → "[claim]")
-   - Ensure declarative sentence structure
-
-5. CONTEXT-DEPENDENT CLAIMS: Handle vague references:
-   - Replace pronouns with specific entities from context
-   - Clarify temporal references ("this morning" → specific date/time)
-   - Specify locations and entities using context information
-
-6. REDUNDANT CLAIMS: Avoid minimal modifications:
-   - Don't create multiple versions of the same fact
-   - Eliminate repetitive claims
-   - Focus on distinct, non-overlapping facts
-
-7. OMITTED CLAIMS: Ensure comprehensive coverage:
-   - Extract all important medical information
-   - Don't miss key facts from the sentence
-   - Maintain completeness of medical content
-
 REASONING FORMAT:
 Think step by step:
 {full_context}
 
 If there is no verifiable fact in the sentence, please write "No verifiable claim".
 
-Here are some examples with reasoning:
+HERE ARE SOME EXAMPLES WITH REASONING:
 Context: I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit. \n\n Considering your tetanus vaccine expired in 2020 and you've got a dirty wound from the Spartan race, your doctor recommends getting a tetanus booster vaccine as soon as possible. They also mentioned that you were due for a booster anyway since it's been more than 3 years since your last vaccine.\n\nYour doctor is a bit puzzled as to why you were given IGG shots instead of a vaccine during your last visit, but that's not a concern for now. They just want to make sure you get the booster vaccine to be on the safe side. It's best to schedule an appointment for the booster vaccine as soon as possible to avoid any potential risks.
 
 Please breakdown the following sentence into independent facts: I spoke to your doctor and they wanted to address your concerns about tetanus.
 
 Reasoning:
-1. What are the main medical concepts here? - doctor consultation, tetanus concerns
-2. What facts can be extracted from each concept? - None, this is a personal narrative about speaking to a doctor
-3. Are these facts verifiable and objective? - No, this is a subjective personal experience
-4. Are these facts complete and contextually appropriate? - N/A, no verifiable facts
-5. Are these facts accurate and comprehensive? - N/A, no verifiable facts
+1. IDENTIFY MAIN MEDICAL CONCEPTS: doctor consultation, tetanus concerns
+2. BREAK DOWN INTO VERIFIABLE FACTS: None, this is a personal narrative about speaking to a doctor
+3. ENSURE OBJECTIVITY AND VERIFIABILITY: No, this is a subjective personal experience
+4. VALIDATE COMPLETENESS AND CONTEXT: N/A, no verifiable facts
+5. FILTER UNVERIFIABLE CLAIMS: This is a personal narrative ("I spoke to your doctor") - should be excluded
+6. PREVENT HALLUCINATED CLAIMS: N/A, no verifiable claims to assess
+7. PRESERVE COMPLETE CLAIMS: N/A, no verifiable claims
+8. TRANSFORM TO DECLARATIVE FORMAT: N/A, no verifiable claims
+9. RESOLVE CONTEXT-DEPENDENT CLAIMS: N/A, no verifiable claims
+10. ELIMINATE REDUNDANT CLAIMS: N/A, no verifiable claims
+11. ENSURE COMPREHENSIVE COVERAGE: N/A, no verifiable claims
+12. REVIEW AND REFINE FOR ACCURACY: N/A, no verifiable claims
 
 Facts:
 - No verifiable claim
@@ -314,17 +284,68 @@ Context: I spoke to your doctor, and they expressed concerns about the safety of
 Please breakdown the following sentence into independent facts: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
 
 Reasoning:
-1. What are the main medical concepts here? - substances, muscle health, bone health, risks, side effects
-2. What facts can be extracted from each concept? - Substances can have positive effects on muscle health, bone health, and carry risks and side effects
-3. Are these facts verifiable and objective? - Yes, these are objective medical facts about substance effects
-4. Are these facts complete and contextually appropriate? - Yes, they are complete and contextually appropriate
-5. Are these facts accurate and comprehensive? - Yes, they accurately represent the medical information
+1. IDENTIFY MAIN MEDICAL CONCEPTS: substances, muscle health, bone health, risks, side effects
+2. BREAK DOWN INTO VERIFIABLE FACTS: Substances can have positive effects on muscle health, bone health, and carry risks and side effects
+3. ENSURE OBJECTIVITY AND VERIFIABILITY: Yes, these are objective medical facts about substance effects that can be verified against medical literature
+4. VALIDATE COMPLETENESS AND CONTEXT: Yes, they are complete and contextually appropriate for medical assessment
+5. FILTER UNVERIFIABLE CLAIMS: No personal narratives or subjective statements found - all claims are medical facts
+6. PREVENT HALLUCINATED CLAIMS: All claims are grounded in the original sentence, no additional information added
+7. PRESERVE COMPLETE CLAIMS: Important modifiers like "may have" and "potential" are preserved
+8. TRANSFORM TO DECLARATIVE FORMAT: Claims are already in declarative format
+9. RESOLVE CONTEXT-DEPENDENT CLAIMS: "these substances" → "anabolic steroids" (from context), "they" → "anabolic steroids"
+10. ELIMINATE REDUNDANT CLAIMS: Each fact addresses a distinct aspect (muscle health, bone health, risks, side effects)
+11. ENSURE COMPREHENSIVE COVERAGE: All important medical information about substance effects is extracted
+12. REVIEW AND REFINE FOR ACCURACY: Each fact is objective, verifiable, complete, and medically accurate
 
 Facts:
 - Anabolic steroids may have positive effects on muscle health.
 - Anabolic steroids may have positive effects on bone health.
-- Anabolic steroids may also carry significant risks.
+- Anabolic steroids may carry significant risks.
 - Anabolic steroids may carry potential side effects.
+
+Context: The patient was diagnosed with diabetes and prescribed metformin. The doctor explained that this medication helps control blood sugar levels and that it should be taken with meals. They also mentioned that these tablets can cause gastrointestinal side effects, but those usually subside after a few weeks. The patient asked about insulin, and the doctor said that it might be needed later if this treatment doesn't work effectively.
+
+Please breakdown the following sentence into independent facts: The doctor explained that this medication helps control blood sugar levels and that it should be taken with meals.
+
+Reasoning:
+1. IDENTIFY MAIN MEDICAL CONCEPTS: medication, blood sugar control, administration timing
+2. BREAK DOWN INTO VERIFIABLE FACTS: Metformin helps control blood sugar levels, metformin should be taken with meals
+3. ENSURE OBJECTIVITY AND VERIFIABILITY: Yes, these are objective medical facts about metformin
+4. VALIDATE COMPLETENESS AND CONTEXT: Yes, they are complete and contextually appropriate
+5. FILTER UNVERIFIABLE CLAIMS: No personal narratives or subjective statements found
+6. PREVENT HALLUCINATED CLAIMS: All claims are grounded in the original sentence
+7. PRESERVE COMPLETE CLAIMS: Important modifiers and timing information preserved
+8. TRANSFORM TO DECLARATIVE FORMAT: Claims are already in declarative format
+9. RESOLVE CONTEXT-DEPENDENT CLAIMS: "this medication" → "metformin" (from context), "it" → "metformin"
+10. ELIMINATE REDUNDANT CLAIMS: Each fact addresses a distinct aspect (efficacy, administration)
+11. ENSURE COMPREHENSIVE COVERAGE: All important medical information about metformin is extracted
+12. REVIEW AND REFINE FOR ACCURACY: Each fact is objective, verifiable, complete, and medically accurate
+
+Facts:
+- Metformin helps control blood sugar levels.
+- Metformin should be taken with meals.
+
+Context: I was prescribed antibiotics for their infection. The doctor explained that this medication should be taken twice daily for 7 days, and that it may cause nausea in some patients. They also mentioned that if the patient experiences severe side effects, they should contact the doctor immediately.
+
+Please breakdown the following sentence into independent facts: The doctor explained that this medication should be taken twice daily for 7 days, and that it may cause nausea in some patients.
+
+Reasoning:
+1. IDENTIFY MAIN MEDICAL CONCEPTS: medication administration, side effects
+2. BREAK DOWN INTO VERIFIABLE FACTS: Antibiotics should be taken twice daily for 7 days, antibiotics may cause nausea
+3. ENSURE OBJECTIVITY AND VERIFIABILITY: Yes, these are objective medical facts about antibiotics
+4. VALIDATE COMPLETENESS AND CONTEXT: Yes, they are complete and contextually appropriate
+5. FILTER UNVERIFIABLE CLAIMS: No personal narratives or subjective statements found
+6. PREVENT HALLUCINATED CLAIMS: All claims are grounded in the original sentence
+7. PRESERVE COMPLETE CLAIMS: Important modifiers like "twice daily", "7 days", "may cause" preserved
+8. TRANSFORM TO DECLARATIVE FORMAT: Claims are already in declarative format
+9. RESOLVE CONTEXT-DEPENDENT CLAIMS: "This medication" → "antibiotics" (from context), "it" → "antibiotics"
+10. ELIMINATE REDUNDANT CLAIMS: Each fact addresses a distinct aspect (administration, side effects)
+11. ENSURE COMPREHENSIVE COVERAGE: All important medical information about antibiotics extracted
+12. REVIEW AND REFINE FOR ACCURACY: Each fact is objective, verifiable, complete, and medically accurate
+
+Facts:
+- Antibiotics should be taken twice daily for 7 days.
+- Antibiotics may cause nausea in some patients.
 
 Now, for your task, follow the same reasoning process."""
 
