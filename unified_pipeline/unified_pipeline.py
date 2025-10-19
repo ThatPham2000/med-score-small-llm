@@ -378,8 +378,8 @@ def main():
         return
 
     # Create pipeline with auto-config
-    # pipeline = create_pipeline(llm, enable_atomic_fact_decomposition=True, verbose=True)
-    pipeline = create_pipeline(llm, auto_config=True, verbose=True)
+    pipeline = create_pipeline(llm, enable_atomic_fact_decomposition=True, verbose=True)
+    # pipeline = create_pipeline(llm, auto_config=True, verbose=True)
 
     question1 = """Context: I spoke to your doctor and they recommended that you see a different doctor for a thorough assessment to determine the cause of your dropping oxygen levels. They believe that speculating about the possible causes without a proper evaluation wouldn't be helpful. However, they did mention that the upcoming sleep study is a good starting point. Additionally, other tests such as an echocardiogram or blood gas analysis may be necessary to help identify the underlying issue. Your doctor suggests that it's best to have a comprehensive evaluation to explore the various possibilities.
 
@@ -420,7 +420,7 @@ Your doctor is a bit puzzled as to why you were given IGG shots instead of a vac
 
     # Test queries
     test_queries = [
-        question4,
+        question2,
     ]
 
     for i, query in enumerate(test_queries, 1):
