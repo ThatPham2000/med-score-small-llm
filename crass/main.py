@@ -162,6 +162,12 @@ def main():
         default=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "crass", "output_crass")),
         help="Directory to write outputs",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for shuffling choices",
+    )
     args = parser.parse_args()
 
     csv_path = args.csv
@@ -170,6 +176,9 @@ def main():
 
     rows = read_crass_rows(csv_path)
     print(f"Loaded {len(rows)} rows from {csv_path}")
+
+    # Set deterministic seed for shuffling choices
+    random.seed(args.seed)
 
     # Initialize LLM (Ollama - gemma3:12b by default)
     llm = create_llm_provider("ollama", model=args.model)
