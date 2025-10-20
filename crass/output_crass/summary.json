@@ -1,0 +1,17 @@
+{
+  "dataset": "/Users/that.phamvan/my_ws/master/med-score-small-llm/crass/CRASS_FTM_main_data_set.csv",
+  "model": "gemma3:12b",
+  "pipeline": {
+    "correct": 249,
+    "total": 274,
+    "accuracy": 0.9088
+  },
+  "llm_only": {
+    "correct": 241,
+    "total": 274,
+    "accuracy": 0.8796
+  },
+  "comparison": {
+    "pipeline_minus_llm_only": 0.0292
+  }
+}
