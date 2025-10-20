@@ -12,14 +12,15 @@ from unified_pipeline.unified_pipeline import create_pipeline
 
 
 def read_crass_rows(csv_path: str) -> List[Dict[str, str]]:
-    """Read CRASS CSV using pandas and return list of row dicts."""
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, sep=';', engine='python')
     # Ensure expected columns exist; fill missing with empty strings
-    for col in ["Premise", "QCC", "CorrectAnswer", "Answer1", "Answer2"]:
+    for col in ["Premise", "QCC", "CorrectAnswer", "Answer1", "Answer2", "PossibleAnswer3"]:
         if col not in df.columns:
             df[col] = ""
     df = df.fillna("")
-    return df.to_dict(orient="records")
+    rs = df.to_dict(orient="records")
+
+    return rs
 
 
 def build_choice_prompt(premise: str, qcc: str, choices: List[str]) -> str:
@@ -68,7 +69,10 @@ def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
             correct_answer = row.get("CorrectAnswer", "")
             a1 = row.get("Answer1", "")
             a2 = row.get("Answer2", "")
+            pa3 = row.get("PossibleAnswer3", "")
             choices = [correct_answer, a1, a2]
+            if isinstance(pa3, str) and pa3.strip():
+                choices.append(pa3)
             shuffled = choices.copy()
             random.shuffle(shuffled)
 
@@ -109,7 +113,10 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
             correct_answer = row.get("CorrectAnswer", "")
             a1 = row.get("Answer1", "")
             a2 = row.get("Answer2", "")
+            pa3 = row.get("PossibleAnswer3", "")
             choices = [correct_answer, a1, a2]
+            if isinstance(pa3, str) and pa3.strip():
+                choices.append(pa3)
             shuffled = choices.copy()
             random.shuffle(shuffled)
 
