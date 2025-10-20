@@ -1,25 +1,29 @@
 import argparse
-import csv
 import json
 import os
+import random
 import time
 from typing import Dict, List, Tuple
+
+import pandas as pd
 
 from unified_pipeline.llm_provider import create_llm_provider, LLMProvider
 from unified_pipeline.unified_pipeline import create_pipeline
 
 
 def read_crass_rows(csv_path: str) -> List[Dict[str, str]]:
-    rows: List[Dict[str, str]] = []
-    with open(csv_path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            rows.append(row)
-    return rows
+    """Read CRASS CSV using pandas and return list of row dicts."""
+    df = pd.read_csv(csv_path)
+    # Ensure expected columns exist; fill missing with empty strings
+    for col in ["Premise", "QCC", "CorrectAnswer", "Answer1", "Answer2"]:
+        if col not in df.columns:
+            df[col] = ""
+    df = df.fillna("")
+    return df.to_dict(orient="records")
 
 
 def build_choice_prompt(premise: str, qcc: str, choices: List[str]) -> str:
-    choices_block = "\n".join([f"- {i+1}. {c}" for i, c in enumerate(choices)])
+    choices_block = "\n".join([f"- {i + 1}. {c}" for i, c in enumerate(choices)])
     return (
         "You are a medical reasoning assistant. Select the SINGLE best answer choice strictly from the provided options.\n"
         "Instructions:\n"
@@ -40,17 +44,7 @@ def extract_choice_text(response: str, choices: List[str]) -> str:
     for c in choices:
         if text == c:
             return c
-    # Try JSON with a "label" or "answer"
-    try:
-        data = json.loads(text)
-        for key in ["label", "answer", "choice", "prediction"]:
-            if key in data and isinstance(data[key], str):
-                cand = data[key].strip()
-                for c in choices:
-                    if cand == c:
-                        return c
-    except Exception:
-        pass
+
     # Fuzzy contains (fall back)
     lower = text.lower()
     best = ""
@@ -62,7 +56,7 @@ def extract_choice_text(response: str, choices: List[str]) -> str:
 
 
 def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path: str) -> Tuple[int, int]:
-    pipeline = create_pipeline(llm, enable_atomic_fact_decomposition=False, verbose=True)
+    pipeline = create_pipeline(llm, enable_atomic_fact_decomposition=False, verbose=True, temperature=0.1)
 
     correct = 0
     total = 0
@@ -75,13 +69,15 @@ def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
             a1 = row.get("Answer1", "")
             a2 = row.get("Answer2", "")
             choices = [correct_answer, a1, a2]
+            shuffled = choices.copy()
+            random.shuffle(shuffled)
 
-            prompt = build_choice_prompt(premise, qcc, choices)
+            prompt = build_choice_prompt(premise, qcc, shuffled)
             start = time.time()
             result = pipeline.process(prompt)
             elapsed = time.time() - start
             model_answer = result.get("final_answer", "")
-            picked = extract_choice_text(model_answer, choices)
+            picked = extract_choice_text(model_answer, shuffled)
             is_correct = picked == correct_answer
             correct += 1 if is_correct else 0
             total += 1
@@ -90,7 +86,7 @@ def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
                 "index": idx,
                 "premise": premise,
                 "qcc": qcc,
-                "choices": choices,
+                "choices": shuffled,
                 "correct_answer": correct_answer,
                 "pipeline_final_answer": model_answer,
                 "picked": picked,
@@ -114,12 +110,14 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
             a1 = row.get("Answer1", "")
             a2 = row.get("Answer2", "")
             choices = [correct_answer, a1, a2]
+            shuffled = choices.copy()
+            random.shuffle(shuffled)
 
-            prompt = build_choice_prompt(premise, qcc, choices)
+            prompt = build_choice_prompt(premise, qcc, shuffled)
             start = time.time()
-            response = llm.generate(prompt, temperature=0.0, max_tokens=1024)
+            response = llm.generate(prompt, temperature=0.1, max_tokens=1024)
             elapsed = time.time() - start
-            picked = extract_choice_text(response, choices)
+            picked = extract_choice_text(response, shuffled)
             is_correct = picked == correct_answer
             correct += 1 if is_correct else 0
             total += 1
@@ -128,7 +126,7 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
                 "index": idx,
                 "premise": premise,
                 "qcc": qcc,
-                "choices": choices,
+                "choices": shuffled,
                 "correct_answer": correct_answer,
                 "llm_response": response,
                 "picked": picked,
@@ -198,5 +196,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
