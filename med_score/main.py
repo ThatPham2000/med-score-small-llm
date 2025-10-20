@@ -3,6 +3,7 @@
 Total responses evaluated: 20
 Responses with valid scores: 20
 Final MedScore: 0.8507
+Number of generated claims: 235
 Score statistics:
   Mean: 0.8507
   Median: 0.8944
@@ -14,6 +15,7 @@ Score statistics:
 Total responses evaluated: 20
 Responses with valid scores: 20
 Final MedScore: 0.9600
+Number of generated claims: 213
 Score statistics:
   Mean: 0.9600
   Median: 1.0000
@@ -35,10 +37,15 @@ def evaluate(file: str):
     scores = [item['score'] for item in combined_output if item['score'] is not None]
     final_score = sum(scores) / len(scores) if scores else None
 
+    num_of_claims = 0
+    for item in combined_output:
+        num_of_claims += len(item['claims'])
+
     print(f"\n=== MedScore Results: {file} ===")
     print(f"Total responses evaluated: {len(combined_output)}")
     print(f"Responses with valid scores: {len(scores)}")
     print(f"Final MedScore: {final_score:.4f}")
+    print(f"Number of generated claims: {num_of_claims}")
 
     # Additional metrics for comparison
     if scores:
