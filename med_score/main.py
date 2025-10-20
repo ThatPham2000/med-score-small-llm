@@ -11,6 +11,18 @@ Score statistics:
   Min: 0.2222
   Max: 1.0000
 
+=== MedScore Results: /Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/output_pure_gemma3_12b/medscore_provided_med_score_output.jsonl ===
+Total responses evaluated: 20
+Responses with valid scores: 20
+Final MedScore: 0.8914
+Number of generated claims: 251
+Score statistics:
+  Mean: 0.8914
+  Median: 0.9282
+  Std Dev: 0.1306
+  Min: 0.5714
+  Max: 1.0000
+
 === MedScore Results: /Users/that.phamvan/my_ws/master/med-score-small-llm/demo/Provided_medscore_output.jsonl ===
 Total responses evaluated: 20
 Responses with valid scores: 20
@@ -61,7 +73,9 @@ def evaluate(file: str):
 
 if __name__ == '__main__':
     file1 = '/Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/output_pipeline_gemma3_12b/small_llm_provided_med_score_output.jsonl'
-    file2 = '/Users/that.phamvan/my_ws/master/med-score-small-llm/demo/Provided_medscore_output.jsonl'
+    file2 = '/Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/output_pure_gemma3_12b/medscore_provided_med_score_output.jsonl'
+    file3 = '/Users/that.phamvan/my_ws/master/med-score-small-llm/demo/Provided_medscore_output.jsonl'
 
     evaluate(file1)
     evaluate(file2)
+    evaluate(file3)
