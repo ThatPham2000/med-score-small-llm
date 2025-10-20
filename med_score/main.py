@@ -25,7 +25,7 @@ Score statistics:
 from jsonlines import jsonlines
 
 
-def compare(file: str):
+def evaluate(file: str):
     with jsonlines.open(file) as reader:
         dataset = [item for item in reader.iter()]
 
@@ -56,5 +56,5 @@ if __name__ == '__main__':
     file1 = '/Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/output_pipeline_gemma3_12b/small_llm_provided_med_score_output.jsonl'
     file2 = '/Users/that.phamvan/my_ws/master/med-score-small-llm/demo/Provided_medscore_output.jsonl'
 
-    compare(file1)
-    compare(file2)
+    evaluate(file1)
+    evaluate(file2)
