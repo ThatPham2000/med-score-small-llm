@@ -232,7 +232,6 @@ if __name__ == '__main__':
     # Load data
     with jsonlines.open(args.input_file) as reader:
         dataset = [item for item in reader.iter()]
-    dataset = dataset[:1]
 
     # Handle provided evidence for 'provided' verification mode
     provided_evidence = None
