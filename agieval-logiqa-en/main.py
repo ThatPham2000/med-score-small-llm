@@ -1,0 +1,218 @@
+import argparse
+import json
+import os
+import sys
+import time
+from typing import Dict, List, Tuple
+
+import pandas as pd
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+from unified_pipeline.llm_provider import create_llm_provider, LLMProvider
+from unified_pipeline.unified_pipeline import create_pipeline
+
+
+def read_agieval_logiqa_rows(parquet_path: str) -> List[Dict[str, str]]:
+    """Load AGIEval LogiQA dataset from parquet file."""
+    df = pd.read_parquet(parquet_path)
+
+    # Convert to list of dictionaries
+    rows = []
+    for idx, row in df.iterrows():
+        # Convert numpy arrays to lists
+        choices = row["choices"].tolist() if hasattr(row["choices"], 'tolist') else list(row["choices"])
+        gold = row["gold"].tolist() if hasattr(row["gold"], 'tolist') else list(row["gold"])
+
+        rows.append({
+            "query": str(row["query"]),
+            "choices": choices,
+            "gold": gold
+        })
+
+    return rows
+
+
+def build_logiqa_prompt(query: str, choices: List[str]) -> str:
+    """Build prompt for LogiQA reasoning tasks."""
+    choices_block = "\n".join([f"- {choice}" for choice in choices])
+    # return (
+    #     "You are a logical reasoning assistant. Analyze the given problem and select the SINGLE best answer choice.\n"
+    #     "Instructions:\n"
+    #     "- Think step by step through the logical reasoning\n"
+    #     "- Consider all given information carefully\n"
+    #     "- Select the most logical answer from the provided choices\n"
+    #     "- Respond with ONLY the chosen option text, no extra words\n\n"
+    #     f"Problem: {query}\n\n"
+    #     f"Answer Choices:\n{choices_block}\n\n"
+    #     "Respond with EXACTLY the chosen option text."
+    # )
+    return f"""Query: {query}
+    
+Answer Choices:\n{choices_block}
+
+Respond with EXACTLY the chosen option text.
+    """
+
+
+def extract_choice_text(response: str, choices: List[str]) -> str:
+    text = (response or "").strip()
+    if not text:
+        return ""
+
+    # Exact match first
+    for choice in choices:
+        if text == choice:
+            return choice
+
+    # Fuzzy contains (fall back)
+    lower = text.lower()
+    best = ""
+    for choice in choices:
+        if choice.lower() in lower:
+            best = choice
+            break
+    return best
+
+
+def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path: str) -> Tuple[int, int]:
+    """Run evaluation using the unified pipeline."""
+    pipeline = create_pipeline(llm, enable_atomic_fact_decomposition=False, verbose=True, temperature=0.1)
+
+    correct = 0
+    total = 0
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    with open(output_path, "w", encoding="utf-8") as out_f:
+        for idx, row in enumerate(rows):
+            query = row.get("query", "")
+            choices = row.get("choices", [])
+            gold_idx = row.get("gold", [0])[0] if row.get("gold") else 0
+            correct_answer = choices[gold_idx] if gold_idx < len(choices) else ""
+
+            prompt = build_logiqa_prompt(query, choices)
+            start = time.time()
+            result = pipeline.process(prompt)
+            elapsed = time.time() - start
+
+            model_answer = result.get("final_answer", "")
+            picked = extract_choice_text(model_answer, choices)
+            is_correct = picked == correct_answer
+            correct += 1 if is_correct else 0
+            total += 1
+
+            out = {
+                "index": idx,
+                "query": query,
+                "choices": choices,
+                "correct_answer": correct_answer,
+                "correct_answer_index": gold_idx,
+                "pipeline_final_answer": model_answer,
+                "picked": picked,
+                "is_correct": is_correct,
+                "latency_s": round(elapsed, 3),
+            }
+            out_f.write(json.dumps(out, ensure_ascii=False) + "\n")
+
+    return correct, total
+
+
+def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path: str) -> Tuple[int, int]:
+    """Run evaluation using LLM only (no pipeline)."""
+    correct = 0
+    total = 0
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    with open(output_path, "w", encoding="utf-8") as out_f:
+        for idx, row in enumerate(rows):
+            query = row.get("query", "")
+            choices = row.get("choices", [])
+            gold_idx = row.get("gold", [0])[0] if row.get("gold") else 0
+            correct_answer = choices[gold_idx] if gold_idx < len(choices) else ""
+
+            prompt = build_logiqa_prompt(query, choices)
+            start = time.time()
+            response = llm.generate(prompt, temperature=0.1, max_tokens=1024)
+            elapsed = time.time() - start
+
+            picked = extract_choice_text(response, choices)
+            is_correct = picked == correct_answer
+            correct += 1 if is_correct else 0
+            total += 1
+
+            out = {
+                "index": idx,
+                "query": query,
+                "choices": choices,
+                "correct_answer": correct_answer,
+                "correct_answer_index": gold_idx,
+                "llm_response": response,
+                "picked": picked,
+                "is_correct": is_correct,
+                "latency_s": round(elapsed, 3),
+            }
+            out_f.write(json.dumps(out, ensure_ascii=False) + "\n")
+
+    return correct, total
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Evaluate AGIEval LogiQA dataset with unified pipeline and LLM-only.")
+    parser.add_argument(
+        "--parquet",
+        default="hf://datasets/dmayhem93/agieval-logiqa-en/data/test-00000-of-00001-0ed7d45b139e1bab.parquet",
+        help="Path to AGIEval LogiQA parquet dataset",
+    )
+    parser.add_argument(
+        "--model",
+        default="gemma3:12b",
+        help="Ollama model to use for both evaluations",
+    )
+    parser.add_argument(
+        "--outdir",
+        default=os.path.abspath(os.path.join(os.path.dirname(__file__), "output_csv_test")),
+        help="Directory to write outputs",
+    )
+    args = parser.parse_args()
+
+    parquet_path = args.parquet
+    outdir = args.outdir
+    os.makedirs(outdir, exist_ok=True)
+
+    rows = read_agieval_logiqa_rows(parquet_path)
+    print(f"Loaded {len(rows)} rows from {parquet_path}")
+
+    # No shuffling needed
+
+    # Initialize LLM (Ollama - gemma3:12b by default)
+    llm = create_llm_provider("ollama", model=args.model)
+
+    # Run pipeline evaluation
+    pipeline_out = os.path.join(outdir, "pipeline_results.jsonl")
+    p_correct, p_total = run_pipeline_eval(rows, llm, pipeline_out)
+    p_acc = p_correct / p_total if p_total else 0.0
+    print(f"Pipeline accuracy: {p_correct}/{p_total} = {p_acc:.3f}")
+
+    # Run LLM-only evaluation
+    llm_out = os.path.join(outdir, "llm_only_results.jsonl")
+    l_correct, l_total = run_llm_only_eval(rows, llm, llm_out)
+    l_acc = l_correct / l_total if l_total else 0.0
+    print(f"LLM-only accuracy: {l_correct}/{l_total} = {l_acc:.3f}")
+
+    # Write summary
+    summary = {
+        "dataset": parquet_path,
+        "model": args.model,
+        "pipeline": {"correct": p_correct, "total": p_total, "accuracy": round(p_acc, 4)},
+        "llm_only": {"correct": l_correct, "total": l_total, "accuracy": round(l_acc, 4)},
+        "comparison": {
+            "pipeline_minus_llm_only": round(p_acc - l_acc, 4)
+        }
+    }
+    with open(os.path.join(outdir, "comparison.json"), "w", encoding="utf-8") as f:
+        json.dump(summary, f, ensure_ascii=False, indent=2)
+    print("Wrote summary:", os.path.join(outdir, "comparison.json"))
+
+
+if __name__ == "__main__":
+    main()
