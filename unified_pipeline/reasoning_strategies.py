@@ -103,25 +103,27 @@ class ChainOfThoughtReasoner:
         }
 
     def _build_cot_prompt(self, query: str) -> str:
-        prompt = f"""You are a logical reasoning assistant. Analyze the following problem and provide step-by-step reasoning.
+        prompt = f"""You are an expert logical reasoning assistant. Analyze the following problem systematically and provide detailed step-by-step reasoning.
 
 Problem: {query}
 
 Instructions:
-1. Break down the problem into clear reasoning steps
-2. For each step, explain your thinking clearly
-3. Show all your work and intermediate calculations
-4. For mathematical problems, identify all given information and what you need to find
-5. Set up equations or relationships correctly
-6. Solve step by step with clear calculations
-7. Work through the reasoning process completely
+1. Read the problem carefully and identify all given information
+2. Break down the problem into clear, logical reasoning steps
+3. For each step, explain your thinking process clearly
+4. Consider all possible scenarios and eliminate impossible ones
+5. Use logical deduction and inference rules
+6. For multiple choice questions, evaluate each option systematically
+7. Show your work and reasoning for each step
 8. Do NOT provide a final answer - focus only on the reasoning process
 
-IMPORTANT: When dealing with problems involving multiple groups or transactions:
-- Carefully count each group separately
-- Add up all quantities correctly
-- Distinguish between what has already happened and what needs to happen
-- Set up your equation based on the total scenario, not partial scenarios
+IMPORTANT: For logical reasoning problems:
+- Identify all given conditions and constraints
+- Use logical operators (if-then, and, or, not) correctly
+- Consider all possible combinations and eliminate contradictions
+- For spatial reasoning, visualize or map out the relationships
+- For conditional logic, trace through all possible scenarios
+- For argument analysis, identify premises, conclusions, and logical connections
 
 Format your response as:
 
@@ -129,7 +131,7 @@ Step 1: [Your first reasoning step]
 Step 2: [Your second reasoning step]
 ...
 
-Begin your step-by-step reasoning:"""
+Begin your systematic reasoning:"""
 
         return prompt
 

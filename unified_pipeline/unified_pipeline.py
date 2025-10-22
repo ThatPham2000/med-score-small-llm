@@ -36,7 +36,7 @@ class PipelineConfig:
 
     enable_atomic_fact_decomposition: bool = False
 
-    temperature: float = 0.7
+    temperature: float = 0.3
     verbose: bool = False
 
 
@@ -202,7 +202,7 @@ class UnifiedPipeline:
         if reasoning:
             reasoning_text = "\n".join([
                 f"Step {i + 1}: {step}" if isinstance(step, str) else str(step)
-                for i, step in enumerate(reasoning[:5])  # Limit to 5 steps
+                for i, step in enumerate(reasoning)
             ])
             context_parts.append(f"Reasoning:\n{reasoning_text}")
 
@@ -228,16 +228,17 @@ class UnifiedPipeline:
                  "content": self._build_medical_atomic_fact_decomposition_system_prompt(full_context)},
                 {"role": "user", "content": query}
             ]
-            answer = self.llm.chat(messages, temperature=0.3, max_tokens=10000)
+            answer = self.llm.chat(messages, temperature=self.config.temperature, max_tokens=10000)
         else:
-            prompt = f"""Answer the following query using the provided information.
+            prompt = f"""You are a logical reasoning assistant. Based on the detailed reasoning provided, give the final answer to the query.
 
-Context: {full_context}
+Reasoning Analysis:
+{full_context}
 
 Query: {query}
 
 Provide a clear, concise, and accurate answer:"""
-            answer = self.llm.generate(prompt, temperature=0.3, max_tokens=10000)
+            answer = self.llm.generate(prompt, temperature=self.config.temperature, max_tokens=10000)
         return answer.strip()
 
     def _build_medical_atomic_fact_decomposition_system_prompt(self, full_context: str) -> str:

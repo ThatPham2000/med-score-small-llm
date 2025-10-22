@@ -108,7 +108,15 @@ def extract_choice_text(response: str, choices: List[str]) -> str:
 
 def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path: str) -> Tuple[int, int]:
     """Run evaluation using the unified pipeline."""
-    pipeline = create_pipeline(llm, enable_atomic_fact_decomposition=False, verbose=True, temperature=0.1)
+    pipeline = create_pipeline(
+        llm, 
+        enable_atomic_fact_decomposition=False, 
+        verbose=True, 
+        temperature=0.1,
+        reasoning_strategy="cot",
+        use_rag=False,
+        enable_tools=False
+    )
 
     correct = 0
     total = 0
