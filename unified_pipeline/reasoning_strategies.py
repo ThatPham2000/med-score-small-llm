@@ -84,16 +84,15 @@ class ChainOfThoughtReasoner:
     def reason(
             self,
             query: str,
-            num_steps: int = 5,
             temperature: float = 0.7
     ) -> Dict[str, Any]:
-        prompt = self._build_cot_prompt(query, num_steps)
+        prompt = self._build_cot_prompt(query)
         response = self.llm.generate(prompt, temperature=temperature, max_tokens=10000)
 
         print('===============[Cot Response]\n', response)
 
         # Parse the response into reasoning steps only
-        steps = self._parse_reasoning_steps(response, num_steps)
+        steps = self._parse_reasoning_steps(response)
 
         # The reasoning stage focuses only on the reasoning process
         # Final answers will be generated in later pipeline stages
@@ -103,7 +102,7 @@ class ChainOfThoughtReasoner:
             "raw_output": response
         }
 
-    def _build_cot_prompt(self, query: str, num_steps: int = 20) -> str:
+    def _build_cot_prompt(self, query: str) -> str:
         prompt = f"""You are a logical reasoning assistant. Analyze the following problem and provide step-by-step reasoning.
 
 Problem: {query}
@@ -124,15 +123,6 @@ IMPORTANT: When dealing with problems involving multiple groups or transactions:
 - Distinguish between what has already happened and what needs to happen
 - Set up your equation based on the total scenario, not partial scenarios
 
-CRITICAL STEP LIMIT: You must provide NO MORE than {num_steps} steps. 
-- If the problem requires more than {num_steps} steps, combine some steps or focus on the most essential reasoning.
-- If the problem requires fewer than {num_steps} steps, that's perfectly fine - use only the steps needed.
-- Do NOT pad your response with unnecessary steps to reach {num_steps}.
-- For simple problems (like basic arithmetic), use 2-3 steps maximum.
-- For complex problems, use more steps but stay within the limit.
-- Be concise: avoid unnecessary explanations for simple operations.
-- Quality over quantity: focus on clear, essential reasoning steps.
-
 Format your response as:
 
 Step 1: [Your first reasoning step]
@@ -143,7 +133,7 @@ Begin your step-by-step reasoning:"""
 
         return prompt
 
-    def _parse_reasoning_steps(self, response: str, num_steps: int = None) -> List[str]:
+    def _parse_reasoning_steps(self, response: str) -> List[str]:
         steps = []
 
         # Look for "Step X:" patterns
@@ -154,11 +144,6 @@ Begin your step-by-step reasoning:"""
             step_content = match.group(1).strip()
             if step_content:
                 steps.append(step_content)
-
-        # Enforce step limit if num_steps is specified
-        if num_steps is not None and len(steps) > num_steps:
-            # Truncate to the specified number of steps
-            steps = steps[:num_steps]
 
         return steps
 
