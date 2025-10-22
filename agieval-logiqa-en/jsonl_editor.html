@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSONL Data Editor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-input-section {
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            margin-bottom: 10px;
+        }
+
+        .file-input input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .navigation {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .record-counter {
+            background: #e9ecef;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .editor-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .choices-section {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+
+        .choice-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .choice-item input[type="text"] {
+            flex: 1;
+        }
+
+        .choice-item input[type="radio"] {
+            margin-right: 5px;
+        }
+
+        .choice-item button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .add-choice-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .add-choice-btn:hover {
+            background: #218838;
+        }
+
+        .export-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .status-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .record-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .record-number {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 18px;
+        }
+
+        .record-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .record-actions .btn {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .record-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .record-form .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .choices-textarea {
+            min-height: 120px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .search-highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .navigation {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                min-width: auto;
+            }
+
+            .record-form {
+                grid-template-columns: 1fr;
+            }
+
+            .record-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>JSONL Data Editor</h1>
+            <p>Visualize and edit your JSONL file content with an intuitive interface</p>
+        </div>
+
+        <div class="controls">
+            <div class="file-input-section">
+                <div class="file-input">
+                    <label for="fileInput">Select JSONL File:</label>
+                    <input type="file" id="fileInput" accept=".jsonl,.json" />
+                </div>
+                <button class="btn" onclick="loadSampleData()">Load Sample Data</button>
+            </div>
+        </div>
+
+        <div id="statusMessage" class="status-message"></div>
+
+        <div id="editorContainer" class="hidden">
+            <div class="navigation">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Search in content..." onkeyup="searchContent()">
+                </div>
+                <div class="record-counter">
+                    <span id="recordCounter">Total Records: 0</span>
+                </div>
+                <button class="btn" onclick="addNewRecord()">Add New Record</button>
+            </div>
+
+            <div id="allRecordsContainer">
+                <!-- All records will be displayed here -->
+            </div>
+        </div>
+
+        <div class="export-section">
+            <h3>Export Data</h3>
+            <p>Download your modified data as a JSONL file</p>
+            <button class="btn btn-success" onclick="exportData()" id="exportBtn" disabled>Export JSONL</button>
+        </div>
+    </div>
+
+    <script>
+        let jsonlData = [];
+        let originalData = [];
+        let searchTerm = '';
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            fileInput.addEventListener('change', handleFileSelect);
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    jsonlData = parseJSONL(content);
+                    originalData = JSON.parse(JSON.stringify(jsonlData));
+                    updateInterface();
+                    showStatus('File loaded successfully!', 'success');
+                } catch (error) {
+                    showStatus('Error loading file: ' + error.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function loadSampleData() {
+            // Load the sample data from the file
+            fetch('agieval-logiqa-en.jsonl')
+                .then(response => response.text())
+                .then(content => {
+                    jsonlData = parseJSONL(content);
+                    originalData = JSON.parse(JSON.stringify(jsonlData));
+                    updateInterface();
+                    showStatus('Sample data loaded successfully!', 'success');
+                })
+                .catch(error => {
+                    showStatus('Error loading sample data: ' + error.message, 'error');
+                });
+        }
+
+        function parseJSONL(content) {
+            const lines = content.trim().split('\n');
+            return lines.map((line, index) => {
+                try {
+                    return JSON.parse(line);
+                } catch (error) {
+                    console.error(`Error parsing line ${index + 1}:`, error);
+                    return null;
+                }
+            }).filter(item => item !== null);
+        }
+
+        function updateInterface() {
+            if (jsonlData.length === 0) {
+                document.getElementById('editorContainer').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('editorContainer').classList.remove('hidden');
+            document.getElementById('exportBtn').disabled = false;
+            displayAllRecords();
+            updateRecordCounter();
+        }
+
+        function displayAllRecords() {
+            const container = document.getElementById('allRecordsContainer');
+            container.innerHTML = '';
+
+            jsonlData.forEach((record, index) => {
+                const recordCard = createRecordCard(record, index);
+                container.appendChild(recordCard);
+            });
+        }
+
+        function createRecordCard(record, index) {
+            const card = document.createElement('div');
+            card.className = 'record-card';
+            card.id = `record-${index}`;
+
+            // Convert choices array to text format
+            const choicesText = record.choices ? record.choices.join('\n') : '';
+
+            card.innerHTML = `
+                <div class="record-header">
+                    <div class="record-number">Record ${index + 1}</div>
+                    <div class="record-actions">
+                        <button class="btn btn-danger" onclick="deleteRecord(${index})">Delete</button>
+                    </div>
+                </div>
+                <form class="record-form" onchange="updateRecord(${index})">
+                    <div class="form-group full-width">
+                        <label for="passage-${index}">Passage:</label>
+                        <textarea id="passage-${index}" placeholder="Enter the passage text...">${record.passage || ''}</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="question-${index}">Question:</label>
+                        <input type="text" id="question-${index}" placeholder="Enter the question..." value="${record.question || ''}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="answer-${index}">Answer:</label>
+                        <input type="text" id="answer-${index}" placeholder="Enter the answer..." value="${record.answer || ''}">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="choices-${index}">Choices (one per line):</label>
+                        <textarea id="choices-${index}" class="choices-textarea" placeholder="Enter choices, one per line...">${choicesText}</textarea>
+                    </div>
+                </form>
+            `;
+
+            return card;
+        }
+
+        function updateRecord(index) {
+            const record = jsonlData[index];
+            
+            // Get form values
+            const passage = document.getElementById(`passage-${index}`).value;
+            const question = document.getElementById(`question-${index}`).value;
+            const answer = document.getElementById(`answer-${index}`).value;
+            const choicesText = document.getElementById(`choices-${index}`).value;
+            
+            // Update record
+            record.passage = passage;
+            record.question = question;
+            record.answer = answer;
+            
+            // Convert choices text back to array
+            record.choices = choicesText.split('\n').filter(choice => choice.trim() !== '');
+        }
+
+        function deleteRecord(index) {
+            if (jsonlData.length <= 1) {
+                showStatus('Cannot delete the last record!', 'error');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete this record?')) {
+                jsonlData.splice(index, 1);
+                displayAllRecords();
+                updateRecordCounter();
+                showStatus('Record deleted successfully!', 'success');
+            }
+        }
+
+        function addNewRecord() {
+            const newRecord = {
+                passage: '',
+                question: '',
+                choices: [],
+                answer: ''
+            };
+            
+            jsonlData.push(newRecord);
+            displayAllRecords();
+            updateRecordCounter();
+            showStatus('New record added!', 'success');
+            
+            // Scroll to the new record
+            const newIndex = jsonlData.length - 1;
+            document.getElementById(`record-${newIndex}`).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function updateRecordCounter() {
+            document.getElementById('recordCounter').textContent = `Total Records: ${jsonlData.length}`;
+        }
+
+        function searchContent() {
+            searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (!searchTerm) {
+                // Show all records
+                document.querySelectorAll('.record-card').forEach(card => {
+                    card.style.display = 'block';
+                    removeHighlights(card);
+                });
+                return;
+            }
+
+            // Filter and highlight records
+            document.querySelectorAll('.record-card').forEach((card, index) => {
+                const record = jsonlData[index];
+                const content = (record.passage + ' ' + record.question + ' ' + 
+                               (record.choices ? record.choices.join(' ') : '') + ' ' + record.answer).toLowerCase();
+                
+                if (content.includes(searchTerm)) {
+                    card.style.display = 'block';
+                    highlightSearchTerm(card);
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function highlightSearchTerm(card) {
+            removeHighlights(card);
+            
+            const textElements = card.querySelectorAll('textarea, input[type="text"]');
+            textElements.forEach(element => {
+                const text = element.value;
+                if (text.toLowerCase().includes(searchTerm)) {
+                    const highlightedText = text.replace(
+                        new RegExp(`(${searchTerm})`, 'gi'),
+                        '<span class="search-highlight">$1</span>'
+                    );
+                    element.innerHTML = highlightedText;
+                }
+            });
+        }
+
+        function removeHighlights(card) {
+            const highlights = card.querySelectorAll('.search-highlight');
+            highlights.forEach(highlight => {
+                const parent = highlight.parentNode;
+                parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+                parent.normalize();
+            });
+        }
+
+        function exportData() {
+            const jsonlContent = jsonlData.map(record => JSON.stringify(record)).join('\n');
+            const blob = new Blob([jsonlContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'modified_data.jsonl';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus('Data exported successfully!', 'success');
+        }
+
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.textContent = message;
+            statusElement.className = `status-message status-${type}`;
+            statusElement.style.display = 'block';
+            
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
