@@ -22,9 +22,9 @@ def read_agieval_logiqa_rows() -> List[Dict[str, str]]:
     return rows
 
 
-def build_logiqa_prompt(query: str, choices: List[str]) -> str:
+def build_logiqa_prompt(passage: str, question: str, choices: List[str]) -> str:
     """Build prompt for LogiQA reasoning tasks."""
-    choices_block = "\n".join([f"- {choice}" for choice in choices])
+    choices_block = "\n".join([choice for choice in choices])
     # return (
     #     "You are a logical reasoning assistant. Analyze the given problem and select the SINGLE best answer choice.\n"
     #     "Instructions:\n"
@@ -36,9 +36,11 @@ def build_logiqa_prompt(query: str, choices: List[str]) -> str:
     #     f"Answer Choices:\n{choices_block}\n\n"
     #     "Respond with EXACTLY the chosen option text."
     # )
-    return f"""Query: {query}
+    return f"""Passage: {passage}
+Question: {question}
     
-Answer Choices:\n{choices_block}
+Answer Choices:
+{choices_block}
 
 Respond with EXACTLY the chosen option text.
     """
@@ -54,42 +56,43 @@ def extract_choice_text(response: str, choices: List[str]) -> str:
         if text == choice:
             return choice
 
-    # Check for letter-only responses (A, B, C, D, etc.)
+    # Check for letter-only responses (A, B, C, D)
     if len(text) == 1 and text.isalpha():
         letter = text.upper()
         for choice in choices:
-            if choice.startswith(f"({letter})") or choice.startswith(f"{letter} "):
+            if choice.startswith(f"({letter})"):
                 return choice
 
-    # Check for letter with parenthesis responses ((A), (B), etc.)
-    if text.startswith("(") and text.endswith(")"):
-        letter = text[1:-1].upper()
+    # Check for letter with parenthesis responses ((A), (B), (C), (D))
+    if len(text) == 3 and text.startswith("(") and text.endswith(")"):
+        letter = text[1].upper()
         if letter.isalpha():
             for choice in choices:
-                if choice.startswith(f"({letter})") or choice.startswith(f"{letter} "):
+                if choice.startswith(f"({letter})"):
                     return choice
 
-    # Check for letter with closing parenthesis A), B), etc.)
+    # Check for letter with closing parenthesis A), B), C), D)
     if text.endswith(")") and len(text) == 2:
-        letter = text[:-1].upper()
+        letter = text[0].upper()
         if letter.isalpha():
             for choice in choices:
-                if choice.startswith(f"({letter})") or choice.startswith(f"{letter} "):
+                if choice.startswith(f"({letter})"):
                     return choice
 
     # Check if response contains the text part of any choice (without letter prefix)
     for choice in choices:
-        # Extract text part after the letter prefix like "(A)", "(B)", etc.
-        if choice.startswith("(") and ")" in choice:
-            choice_text = choice.split(")", 1)[1].strip()
-            if choice_text and choice_text in text:
-                return choice
+        choice_text = choice.split(")", 1)[1].strip()
+        if choice_text and choice_text in text:
+            return choice
 
     # Fuzzy contains (fall back)
     lower = text.lower()
     best = ""
     for choice in choices:
         if choice.lower() in lower:
+            best = choice
+            break
+        if choice.split(")", 1)[1].strip().lower() in lower:
             best = choice
             break
     return best
@@ -114,12 +117,12 @@ def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
 
     with open(output_path, "w", encoding="utf-8") as out_f:
         for idx, row in enumerate(rows):
-            query = row.get("query", "")
+            passage = row.get("passage", "")
+            question = row.get("question", "")
             choices = row.get("choices", [])
-            gold_idx = row.get("gold", [0])[0] if row.get("gold") else 0
-            correct_answer = choices[gold_idx] if gold_idx < len(choices) else ""
+            correct_answer = row.get("answer", "")
 
-            prompt = build_logiqa_prompt(query, choices)
+            prompt = build_logiqa_prompt(passage, question, choices)
             start = time.time()
             result = pipeline.process(prompt)
             elapsed = time.time() - start
@@ -132,10 +135,10 @@ def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
 
             out = {
                 "index": idx,
-                "query": query,
+                "passage": passage,
+                "question": question,
                 "choices": choices,
                 "correct_answer": correct_answer,
-                "correct_answer_index": gold_idx,
                 "pipeline_final_answer": model_answer,
                 "picked": picked,
                 "is_correct": is_correct,
@@ -154,12 +157,12 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
 
     with open(output_path, "w", encoding="utf-8") as out_f:
         for idx, row in enumerate(rows):
-            query = row.get("query", "")
+            passage = row.get("passage", "")
+            question = row.get("question", "")
             choices = row.get("choices", [])
-            gold_idx = row.get("gold", [0])[0] if row.get("gold") else 0
-            correct_answer = choices[gold_idx] if gold_idx < len(choices) else ""
+            correct_answer = row.get("answer", "")
 
-            prompt = build_logiqa_prompt(query, choices)
+            prompt = build_logiqa_prompt(passage, question, choices)
             start = time.time()
             response = llm.generate(prompt, temperature=0.1, max_tokens=1024)
             elapsed = time.time() - start
@@ -171,10 +174,10 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
 
             out = {
                 "index": idx,
-                "query": query,
+                "passage": passage,
+                "question": question,
                 "choices": choices,
                 "correct_answer": correct_answer,
-                "correct_answer_index": gold_idx,
                 "llm_response": response,
                 "picked": picked,
                 "is_correct": is_correct,
