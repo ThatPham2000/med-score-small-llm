@@ -5,7 +5,7 @@ import sys
 import time
 from typing import Dict, List, Tuple
 
-import pandas as pd
+from jsonlines import jsonlines
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -13,23 +13,12 @@ from unified_pipeline.llm_provider import create_llm_provider, LLMProvider
 from unified_pipeline.unified_pipeline import create_pipeline
 
 
-def read_agieval_logiqa_rows(parquet_path: str) -> List[Dict[str, str]]:
-    """Load AGIEval LogiQA dataset from parquet file."""
-    df = pd.read_parquet(parquet_path)
-
-    # Convert to list of dictionaries
-    rows = []
-    for idx, row in df.iterrows():
-        # Convert numpy arrays to lists
-        choices = row["choices"].tolist() if hasattr(row["choices"], 'tolist') else list(row["choices"])
-        gold = row["gold"].tolist() if hasattr(row["gold"], 'tolist') else list(row["gold"])
-
-        rows.append({
-            "query": str(row["query"]),
-            "choices": choices,
-            "gold": gold
-        })
-
+# df = pd.read_parquet("hf://datasets/valen02/logiqa-en_AGIEval/data/test-00000-of-00001.parquet")
+def read_agieval_logiqa_rows() -> List[Dict[str, str]]:
+    with jsonlines.open(
+            '/Users/that.phamvan/my_ws/master/med-score-small-llm/agieval-logiqa-en/agieval-logiqa-en.jsonl',
+            'r') as reader:
+        rows = [item for item in reader.iter()]
     return rows
 
 
@@ -109,13 +98,14 @@ def extract_choice_text(response: str, choices: List[str]) -> str:
 def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path: str) -> Tuple[int, int]:
     """Run evaluation using the unified pipeline."""
     pipeline = create_pipeline(
-        llm, 
-        enable_atomic_fact_decomposition=False, 
-        verbose=True, 
+        llm,
+        enable_atomic_fact_decomposition=False,
+        verbose=True,
         temperature=0.1,
         reasoning_strategy="cot",
         use_rag=False,
-        enable_tools=False
+        enable_tools=False,
+        auto_config=False
     )
 
     correct = 0
@@ -198,11 +188,6 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
 def main():
     parser = argparse.ArgumentParser(description="Evaluate AGIEval LogiQA dataset with unified pipeline and LLM-only.")
     parser.add_argument(
-        "--parquet",
-        default="hf://datasets/dmayhem93/agieval-logiqa-en/data/test-00000-of-00001-0ed7d45b139e1bab.parquet",
-        help="Path to AGIEval LogiQA parquet dataset",
-    )
-    parser.add_argument(
         "--model",
         default="gemma3:12b",
         help="Ollama model to use for both evaluations",
@@ -214,12 +199,11 @@ def main():
     )
     args = parser.parse_args()
 
-    parquet_path = args.parquet
     outdir = args.outdir
     os.makedirs(outdir, exist_ok=True)
 
-    rows = read_agieval_logiqa_rows(parquet_path)
-    print(f"Loaded {len(rows)} rows from {parquet_path}")
+    rows = read_agieval_logiqa_rows()
+    print(f"Loaded {len(rows)} rows")
 
     # No shuffling needed
 
@@ -240,7 +224,7 @@ def main():
 
     # Write summary
     summary = {
-        "dataset": parquet_path,
+        "dataset": 'hf://datasets/valen02/logiqa-en_AGIEval/data/test-00000-of-00001.parquet',
         "model": args.model,
         "pipeline": {"correct": p_correct, "total": p_total, "accuracy": round(p_acc, 4)},
         "llm_only": {"correct": l_correct, "total": l_total, "accuracy": round(l_acc, 4)},
