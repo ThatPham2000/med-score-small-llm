@@ -149,7 +149,7 @@ class UnifiedPipeline:
         else:
             # Default to CoT
             result = self.cot_reasoner.reason_medical_atomic_facts_decompose() if self.config.enable_atomic_fact_decomposition else self.cot_reasoner.reason(
-                query, num_steps=20, temperature=self.config.temperature)
+                query, temperature=self.config.temperature)
             return result.get("reasoning_steps", [])
 
     def _ground_knowledge(self, query: str) -> list:
