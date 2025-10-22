@@ -30,7 +30,7 @@ def read_agieval_logiqa_rows(parquet_path: str) -> List[Dict[str, str]]:
             "gold": gold
         })
 
-    return rows[:10]
+    return rows
 
 
 def build_logiqa_prompt(query: str, choices: List[str]) -> str:
