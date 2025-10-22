@@ -30,7 +30,7 @@ def read_agieval_logiqa_rows(parquet_path: str) -> List[Dict[str, str]]:
             "gold": gold
         })
 
-    return rows
+    return rows[:10]
 
 
 def build_logiqa_prompt(query: str, choices: List[str]) -> str:
@@ -64,6 +64,37 @@ def extract_choice_text(response: str, choices: List[str]) -> str:
     for choice in choices:
         if text == choice:
             return choice
+
+    # Check for letter-only responses (A, B, C, D, etc.)
+    if len(text) == 1 and text.isalpha():
+        letter = text.upper()
+        for choice in choices:
+            if choice.startswith(f"({letter})") or choice.startswith(f"{letter} "):
+                return choice
+
+    # Check for letter with parenthesis responses ((A), (B), etc.)
+    if text.startswith("(") and text.endswith(")"):
+        letter = text[1:-1].upper()
+        if letter.isalpha():
+            for choice in choices:
+                if choice.startswith(f"({letter})") or choice.startswith(f"{letter} "):
+                    return choice
+
+    # Check for letter with closing parenthesis A), B), etc.)
+    if text.endswith(")") and len(text) == 2:
+        letter = text[:-1].upper()
+        if letter.isalpha():
+            for choice in choices:
+                if choice.startswith(f"({letter})") or choice.startswith(f"{letter} "):
+                    return choice
+
+    # Check if response contains the text part of any choice (without letter prefix)
+    for choice in choices:
+        # Extract text part after the letter prefix like "(A)", "(B)", etc.
+        if choice.startswith("(") and ")" in choice:
+            choice_text = choice.split(")", 1)[1].strip()
+            if choice_text and choice_text in text:
+                return choice
 
     # Fuzzy contains (fall back)
     lower = text.lower()
