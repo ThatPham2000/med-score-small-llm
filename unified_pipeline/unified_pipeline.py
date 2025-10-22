@@ -230,14 +230,22 @@ class UnifiedPipeline:
             ]
             answer = self.llm.chat(messages, temperature=self.config.temperature, max_tokens=10000)
         else:
-            prompt = f"""You are a logical reasoning assistant. Based on the detailed reasoning provided, give the final answer to the query.
+            # Optimized prompt for logical reasoning and multiple choice questions
+            prompt = f"""You are an expert logical reasoning assistant. Based on the detailed reasoning provided, give the final answer to the query.
+
+CRITICAL INSTRUCTIONS:
+- For multiple choice questions, respond with EXACTLY the chosen option text
+- Do not add any extra words, explanations, or formatting
+- If the reasoning leads to a clear conclusion, state it directly
+- If uncertain, choose the most logically sound option based on the reasoning
 
 Reasoning Analysis:
 {full_context}
 
-Query: {query}
+Query:
+{query}
 
-Provide a clear, concise, and accurate answer:"""
+Based on the reasoning above, provide the final answer:"""
             answer = self.llm.generate(prompt, temperature=self.config.temperature, max_tokens=10000)
         return answer.strip()
 
