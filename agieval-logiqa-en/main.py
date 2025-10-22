@@ -19,7 +19,7 @@ def read_agieval_logiqa_rows() -> List[Dict[str, str]]:
             '/Users/that.phamvan/my_ws/master/med-score-small-llm/agieval-logiqa-en/agieval-logiqa-en.jsonl',
             'r') as reader:
         rows = [item for item in reader.iter()]
-    return rows
+    return rows[100:105]
 
 
 def build_logiqa_prompt(passage: str, question: str, choices: List[str]) -> str:
@@ -120,7 +120,17 @@ def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
             passage = row.get("passage", "")
             question = row.get("question", "")
             choices = row.get("choices", [])
-            correct_answer = row.get("answer", "")
+            correct_answer_characters = row.get("answer", "")
+            if correct_answer_characters == "A":
+                correct_answer = choices[0]
+            elif correct_answer_characters == "B":
+                correct_answer = choices[1]
+            elif correct_answer_characters == "C":
+                correct_answer = choices[2]
+            elif correct_answer_characters == "D":
+                correct_answer = choices[3]
+            else:
+                correct_answer = ""
 
             prompt = build_logiqa_prompt(passage, question, choices)
             start = time.time()
@@ -160,7 +170,17 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
             passage = row.get("passage", "")
             question = row.get("question", "")
             choices = row.get("choices", [])
-            correct_answer = row.get("answer", "")
+            correct_answer_characters = row.get("answer", "")
+            if correct_answer_characters == "A":
+                correct_answer = choices[0]
+            elif correct_answer_characters == "B":
+                correct_answer = choices[1]
+            elif correct_answer_characters == "C":
+                correct_answer = choices[2]
+            elif correct_answer_characters == "D":
+                correct_answer = choices[3]
+            else:
+                correct_answer = ""
 
             prompt = build_logiqa_prompt(passage, question, choices)
             start = time.time()
