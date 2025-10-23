@@ -52,9 +52,10 @@ class ChainOfThoughtReasoner:
     def reason(
             self,
             query: str,
+            evidence: list,
             temperature: float = 0.7
     ) -> Dict[str, Any]:
-        prompt = self._build_cot_prompt(query)
+        prompt = self._build_cot_prompt(query, evidence)
         response = self.llm.generate(prompt, temperature=temperature, max_tokens=2000)
 
         print('===============[Cot Response]\n', response)
@@ -70,8 +71,13 @@ class ChainOfThoughtReasoner:
             "raw_output": response
         }
 
-    def _build_cot_prompt(self, query: str) -> str:
+    def _build_cot_prompt(self, query: str, evidence: list) -> str:
+        evidence_text = ""
+        if evidence:
+            evidence_text = "\n".join([f"{e.content}" for e in evidence])
         prompt = f"""You are an expert logical reasoning assistant. Analyze the following problem systematically and provide detailed step-by-step reasoning.
+
+{f'Evidence: {evidence_text}' if evidence_text else ''}
 
 Problem: {query}
 

@@ -62,15 +62,16 @@ class UnifiedPipeline:
 
         if self.config.verbose:
             print(f"\n{'=' * 10}\nProcessing: {query}\n{'=' * 10}")
-            print(f"\n{'=' * 10}\nStage 1: Reasoning\n{'=' * 10}")
 
-        # Stage 1: Reasoning
-        reasoning_trace = self._reason(query)
-
+        # Stage 1: Knowledge Grounding (if enabled)
         if self.config.verbose and self.config.use_rag:
-            print(f"\n{'=' * 10}\nStage 2: Knowledge grounding\n{'=' * 10}")
-        # Stage 2: Knowledge Grounding (if enabled)
+            print(f"\n{'=' * 10}\nStage 1: Knowledge grounding\n{'=' * 10}")
         evidence = self._ground_knowledge(query) if self.config.use_rag else []
+
+        # Stage 2: Reasoning
+        if self.config.verbose:
+            print(f"\n{'=' * 10}\nStage 2: Reasoning\n{'=' * 10}")
+        reasoning_trace = self._reason(query, evidence)
 
         if self.config.verbose and self.config.enable_tools:
             print(f"\n{'=' * 10}\nStage 3: Tool Augmentation\n{'=' * 10}")
@@ -126,19 +127,19 @@ class UnifiedPipeline:
             print(f'Enable Tools: {"Yes" if self.config.enable_tools else "No"}')
             print(f'Atomic Fact Decomposition: {"Yes" if self.config.enable_atomic_fact_decomposition else "No"}')
 
-    def _reason(self, query: str) -> list:
-        """Stage 1: Apply reasoning strategy"""
-        # Use CoT reasoning
-        result = self.cot_reasoner.reason_medical_atomic_facts_decompose() if self.config.enable_atomic_fact_decomposition else self.cot_reasoner.reason(
-            query, temperature=self.config.temperature)
-        return result.get("reasoning_steps", [])
-
     def _ground_knowledge(self, query: str) -> list:
-        """Stage 2: Retrieve relevant evidence"""
+        """Stage 1: Retrieve relevant evidence"""
         evidence = self.retriever.retrieve(query)
         if self.config.verbose and evidence:
             print(f"Retrieved {len(evidence)} evidence pieces")
         return evidence
+
+    def _reason(self, query: str, evidence: list) -> list:
+        """Stage 2: Apply reasoning strategy"""
+        # Use CoT reasoning
+        result = self.cot_reasoner.reason_medical_atomic_facts_decompose() if self.config.enable_atomic_fact_decomposition else self.cot_reasoner.reason(
+            query, evidence, temperature=self.config.temperature)
+        return result.get("reasoning_steps", [])
 
     def _augment_with_tools(self, query: str, reasoning: list, evidence: list) -> list:
         """Stage 3: Use external tools if needed"""
