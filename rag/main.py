@@ -39,15 +39,6 @@ def read_rag_rows() -> List[Dict[str, str]]:
     return rows
 
 
-def build_rag_prompt(context: str, question: str) -> str:
-    """Build prompt for RAG tasks using context and question."""
-    return f"""Context: {context}
-
-Question: {question}
-
-Based on the provided context, please answer the question accurately and concisely."""
-
-
 def run_pipeline_eval_with_rag(rows: List[Dict[str, str]], llm: LLMProvider, output_path: str) -> Tuple[int, int]:
     """Run evaluation using the unified pipeline with RAG."""
     pipeline = create_pipeline(
@@ -71,7 +62,9 @@ def run_pipeline_eval_with_rag(rows: List[Dict[str, str]], llm: LLMProvider, out
             question = row.get("question", "")
             correct_answer = row.get("answer", "")
 
-            prompt = build_rag_prompt(context, question)
+            prompt = f"""Question: {question}
+
+Based on the provided context, please answer the question accurately and concisely."""
             start = time.time()
             result = pipeline.process(prompt)
             elapsed = time.time() - start
