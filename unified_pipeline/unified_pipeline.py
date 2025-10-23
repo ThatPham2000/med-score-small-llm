@@ -16,7 +16,7 @@ from .agentic_tools import AgenticFramework
 from .knowledge_grounding import SimpleRetriever
 from .llm_provider import LLMProvider
 from .query_analyzer import QueryAnalyzer
-from .reasoning_strategies import ChainOfThoughtReasoner, TreeOfThoughtsReasoner
+from .reasoning_strategies import ChainOfThoughtReasoner
 
 
 @dataclass
@@ -24,9 +24,7 @@ class PipelineConfig:
     # use llm for generate config
     auto_config: bool = True
 
-    reasoning_strategy: str = "cot"  # "cot" or "tot"
-    tot_max_depth: int = 3
-    tot_branching_factor: int = 2
+    reasoning_strategy: str = "cot"  # "cot" only
 
     use_rag: bool = False
     rag_top_k: int = 5
@@ -51,7 +49,6 @@ class UnifiedPipeline:
         self.config = config or PipelineConfig()
 
         self.cot_reasoner = ChainOfThoughtReasoner(llm)
-        self.tot_reasoner = None  # Lazy initialization
 
         self.retriever = retriever or SimpleRetriever()
 
@@ -120,9 +117,6 @@ class UnifiedPipeline:
         self.config.enable_atomic_fact_decomposition = config_params.get('enable_atomic_fact_decomposition', False)
         self.config.temperature = config_params.get('temperature', 0.7)
 
-        if self.config.reasoning_strategy == 'tot':
-            self.config.tot_max_depth = config_params.get('tot_max_depth', 3)
-            self.config.tot_branching_factor = config_params.get('tot_branching_factor', 2)
         if self.config.enable_tools:
             self.config.max_tool_steps = config_params.get('max_tool_steps', 10)
 
@@ -135,22 +129,10 @@ class UnifiedPipeline:
 
     def _reason(self, query: str) -> list:
         """Stage 1: Apply reasoning strategy"""
-        if self.config.reasoning_strategy == "tot":
-            # Lazy initialize ToT reasoner
-            if self.tot_reasoner is None:
-                self.tot_reasoner = TreeOfThoughtsReasoner(
-                    llm=self.llm,
-                    max_depth=self.config.tot_max_depth,
-                    branching_factor=self.config.tot_branching_factor
-                )
-            result = self.tot_reasoner.reason(query,
-                                              self.config.temperature)  # TODO(THAT): check for atomic fact decomposition
-            return result.get("reasoning_steps", [])
-        else:
-            # Default to CoT
-            result = self.cot_reasoner.reason_medical_atomic_facts_decompose() if self.config.enable_atomic_fact_decomposition else self.cot_reasoner.reason(
-                query, temperature=self.config.temperature)
-            return result.get("reasoning_steps", [])
+        # Use CoT reasoning
+        result = self.cot_reasoner.reason_medical_atomic_facts_decompose() if self.config.enable_atomic_fact_decomposition else self.cot_reasoner.reason(
+            query, temperature=self.config.temperature)
+        return result.get("reasoning_steps", [])
 
     def _ground_knowledge(self, query: str) -> list:
         """Stage 2: Retrieve relevant evidence"""
@@ -365,8 +347,6 @@ def create_pipeline(
         retriever: Optional[SimpleRetriever] = None,
         auto_config: bool = False,
         reasoning_strategy: str = "cot",
-        tot_max_depth: int = 3,
-        tot_branching_factor: int = 2,
         use_rag: bool = False,
         rag_top_k: int = 5,
         enable_tools: bool = False,
@@ -378,8 +358,6 @@ def create_pipeline(
     config = PipelineConfig(
         auto_config=auto_config,
         reasoning_strategy=reasoning_strategy,
-        tot_max_depth=tot_max_depth,
-        tot_branching_factor=tot_branching_factor,
         use_rag=use_rag,
         rag_top_k=rag_top_k,
         enable_tools=enable_tools,

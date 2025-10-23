@@ -69,13 +69,8 @@ Respond in JSON format:
                 characteristics.query_type == "atomic_fact_decomposition"
         )
 
-        # Reasoning strategy
-        if characteristics.needs_exploration or characteristics.complexity == "complex":
-            config["reasoning_strategy"] = "tot"
-            config["tot_max_depth"] = 4 if characteristics.complexity == "complex" else 3
-            config["tot_branching_factor"] = 3 if characteristics.complexity == "complex" else 2
-        else:
-            config["reasoning_strategy"] = "cot"
+        # Reasoning strategy - always use CoT
+        config["reasoning_strategy"] = "cot"
 
         # Tools: Enable for computation (code execution) OR exploration (web search)
         # For atomic fact decomposition, we typically don't need tools as we focus on text analysis
@@ -372,9 +367,6 @@ def main():
             print(f"        Atomic Fact Decomposition: {config.get('enable_atomic_fact_decomposition', False)}")
         print(
             f"        Temperature: {config.get('temperature', 0.7)} | Max Tool Steps: {config.get('max_tool_steps', 0)}")
-        if config.get('reasoning_strategy') == 'tot':
-            print(
-                f"        ToT Depth: {config.get('tot_max_depth', 0)} | Branching: {config.get('tot_branching_factor', 0)}")
         if config.get('use_rag'):
             print(f"        RAG Top-K: {config.get('rag_top_k', 0)}")
         print(f"     ⏱️  Time: {elapsed:.0f}ms")
