@@ -24,12 +24,8 @@ def read_crass_rows(csv_path: str) -> List[Dict[str, str]]:
 
 
 def build_choice_prompt(premise: str, qcc: str, choices: List[str]) -> str:
-    choices_block = "\n".join([f"- {i + 1}. {c}" for i, c in enumerate(choices)])
+    choices_block = "\n".join([f"{i + 1}. {c}" for i, c in enumerate(choices)])
     return (
-        "You are a medical reasoning assistant. Select the SINGLE best answer choice strictly from the provided options.\n"
-        "Instructions:\n"
-        "- Think briefly but respond with ONLY the chosen option text, no extra words.\n"
-        "- Do not invent new options.\n\n"
         f"Premise: {premise}\n"
         f"Question/Claim/Context: {qcc}\n\n"
         f"Choices:\n{choices_block}\n\n"
@@ -47,10 +43,9 @@ def extract_choice_text(response: str, choices: List[str]) -> str:
             return c
 
     # Fuzzy contains (fall back)
-    lower = text.lower()
     best = ""
     for c in choices:
-        if c.lower() in lower:
+        if c.lower() in text.lower():
             best = c
             break
     return best
@@ -64,12 +59,12 @@ def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as out_f:
         for idx, row in enumerate(rows):
-            premise = row.get("Premise", "")
-            qcc = row.get("QCC", "")
-            correct_answer = row.get("CorrectAnswer", "")
-            a1 = row.get("Answer1", "")
-            a2 = row.get("Answer2", "")
-            pa3 = row.get("PossibleAnswer3", "")
+            premise = row.get("Premise", "").strip()
+            qcc = row.get("QCC", "").strip()
+            correct_answer = row.get("CorrectAnswer", "").strip()
+            a1 = row.get("Answer1", "").strip()
+            a2 = row.get("Answer2", "").strip()
+            pa3 = row.get("PossibleAnswer3", "").strip()
             choices = [correct_answer, a1, a2]
             if isinstance(pa3, str) and pa3.strip():
                 choices.append(pa3)
@@ -92,6 +87,7 @@ def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
                 "qcc": qcc,
                 "choices": shuffled,
                 "correct_answer": correct_answer,
+                "reasoning_trace": result.get("reasoning_trace", []),
                 "pipeline_final_answer": model_answer,
                 "picked": picked,
                 "is_correct": is_correct,
@@ -108,12 +104,12 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as out_f:
         for idx, row in enumerate(rows):
-            premise = row.get("Premise", "")
-            qcc = row.get("QCC", "")
-            correct_answer = row.get("CorrectAnswer", "")
-            a1 = row.get("Answer1", "")
-            a2 = row.get("Answer2", "")
-            pa3 = row.get("PossibleAnswer3", "")
+            premise = row.get("Premise", "").strip()
+            qcc = row.get("QCC", "").strip()
+            correct_answer = row.get("CorrectAnswer", "").strip()
+            a1 = row.get("Answer1", "").strip()
+            a2 = row.get("Answer2", "").strip()
+            pa3 = row.get("PossibleAnswer3", "").strip()
             choices = [correct_answer, a1, a2]
             if isinstance(pa3, str) and pa3.strip():
                 choices.append(pa3)
@@ -122,7 +118,7 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
 
             prompt = build_choice_prompt(premise, qcc, shuffled)
             start = time.time()
-            response = llm.generate(prompt, temperature=0.1, max_tokens=1024)
+            response = llm.generate(prompt, temperature=0.1, max_tokens=2000)
             elapsed = time.time() - start
             picked = extract_choice_text(response, shuffled)
             is_correct = picked == correct_answer
