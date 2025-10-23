@@ -246,7 +246,7 @@ Query:
 {query}
 
 Based on the reasoning above, provide the final answer:"""
-            answer = self.llm.generate(prompt, temperature=self.config.temperature, max_tokens=10000)
+            answer = self.llm.generate(prompt, temperature=self.config.temperature, max_tokens=200)
         return answer.strip()
 
     def _build_medical_atomic_fact_decomposition_system_prompt(self, full_context: str) -> str:

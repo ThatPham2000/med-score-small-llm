@@ -87,7 +87,7 @@ class ChainOfThoughtReasoner:
             temperature: float = 0.7
     ) -> Dict[str, Any]:
         prompt = self._build_cot_prompt(query)
-        response = self.llm.generate(prompt, temperature=temperature, max_tokens=10000)
+        response = self.llm.generate(prompt, temperature=temperature, max_tokens=2000)
 
         print('===============[Cot Response]\n', response)
 
