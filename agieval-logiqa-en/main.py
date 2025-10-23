@@ -19,7 +19,7 @@ def read_agieval_logiqa_rows() -> List[Dict[str, str]]:
             '/Users/that.phamvan/my_ws/master/med-score-small-llm/agieval-logiqa-en/agieval-logiqa-en.jsonl',
             'r') as reader:
         rows = [item for item in reader.iter()]
-    return rows[100:105]
+    return rows
 
 
 def build_logiqa_prompt(passage: str, question: str, choices: List[str]) -> str:
@@ -184,7 +184,7 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
 
             prompt = build_logiqa_prompt(passage, question, choices)
             start = time.time()
-            response = llm.generate(prompt, temperature=0.1, max_tokens=1024)
+            response = llm.generate(prompt, temperature=0.1, max_tokens=2000)
             elapsed = time.time() - start
 
             picked = extract_choice_text(response, choices)
