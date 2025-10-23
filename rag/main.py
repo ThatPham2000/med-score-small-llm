@@ -48,6 +48,7 @@ def run_pipeline_eval_with_rag(rows: List[Dict[str, str]], llm: LLMProvider, out
         temperature=0.1,
         reasoning_strategy="cot",
         use_rag=True,  # Enable RAG for pipeline
+        documents_path='/Users/that.phamvan/my_ws/master/med-score-small-llm/rag/rag_test.jsonl',
         enable_tools=False,
         auto_config=False
     )
