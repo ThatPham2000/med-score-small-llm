@@ -149,6 +149,7 @@ def run_pipeline_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
                 "question": question,
                 "choices": choices,
                 "correct_answer": correct_answer,
+                "reasoning_trace": result.get("reasoning_trace", []),
                 "pipeline_final_answer": model_answer,
                 "picked": picked,
                 "is_correct": is_correct,
