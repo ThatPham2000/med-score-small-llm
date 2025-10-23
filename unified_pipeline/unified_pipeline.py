@@ -216,9 +216,12 @@ class UnifiedPipeline:
             prompt = f"""You are an expert logical reasoning assistant. Based on the detailed reasoning provided, give the final answer to the query.
 
 CRITICAL INSTRUCTIONS:
+- Review the entire reasoning process carefully once again
+- Synthesize information from reasoning, evidence, and tool results (if available)
+- Ensure the final answer directly addresses the original query
+- Provide a clear and concise final answer
 - For multiple choice questions, respond with EXACTLY the chosen option text
 - Do not add any extra words, explanations, or formatting
-- If the reasoning leads to a clear conclusion, state it directly
 - If uncertain, choose the most logically sound option based on the reasoning
 
 Reasoning Analysis:
