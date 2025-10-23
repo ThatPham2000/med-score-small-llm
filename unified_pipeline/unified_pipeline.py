@@ -27,7 +27,7 @@ class PipelineConfig:
     reasoning_strategy: str = "cot"  # "cot" only
 
     use_rag: bool = False
-    rag_top_k: int = 5
+    documents_path: str = ""
 
     enable_tools: bool = False
     max_tool_steps: int = 10
@@ -42,7 +42,6 @@ class UnifiedPipeline:
     def __init__(
             self,
             llm: LLMProvider,
-            retriever: Optional[SimpleRetriever] = None,
             config: Optional[PipelineConfig] = None
     ):
         self.llm = llm
@@ -50,7 +49,7 @@ class UnifiedPipeline:
 
         self.cot_reasoner = ChainOfThoughtReasoner(llm)
 
-        self.retriever = retriever or SimpleRetriever()
+        self.retriever = SimpleRetriever(self.config.documents_path)
 
         self.agentic = AgenticFramework(llm)
 
@@ -136,7 +135,7 @@ class UnifiedPipeline:
 
     def _ground_knowledge(self, query: str) -> list:
         """Stage 2: Retrieve relevant evidence"""
-        evidence = self.retriever.retrieve(query, top_k=self.config.rag_top_k)
+        evidence = self.retriever.retrieve(query)
         if self.config.verbose and evidence:
             print(f"Retrieved {len(evidence)} evidence pieces")
         return evidence
@@ -156,7 +155,7 @@ class UnifiedPipeline:
 
         # Add evidence from Stage 2
         if evidence:
-            evidence_text = "\n".join([f"[{e.source}] {e.content}" for e in evidence])
+            evidence_text = "\n".join([f"[{e.content}" for e in evidence])
             context_parts.append(f"Evidence:\n{evidence_text}")
 
         # Combine all context parts
@@ -189,9 +188,7 @@ class UnifiedPipeline:
             context_parts.append(f"Reasoning:\n{reasoning_text}")
 
         if evidence:
-            evidence_text = "\n".join([
-                f"[{e.source}] {e.content}" for e in evidence[:3]  # Limit to 3 pieces
-            ])
+            evidence_text = "\n".join([f"{e.content}" for e in evidence])
             context_parts.append(f"Evidence:\n{evidence_text}")
 
         if tools:
@@ -347,11 +344,10 @@ Now, for your task, follow the same reasoning process."""
 # Convenience factory functions
 def create_pipeline(
         llm: LLMProvider,
-        retriever: Optional[SimpleRetriever] = None,
         auto_config: bool = False,
         reasoning_strategy: str = "cot",
         use_rag: bool = False,
-        rag_top_k: int = 5,
+        documents_path: str = "",
         enable_tools: bool = False,
         max_tool_steps: int = 10,
         enable_atomic_fact_decomposition: bool = False,
@@ -362,14 +358,14 @@ def create_pipeline(
         auto_config=auto_config,
         reasoning_strategy=reasoning_strategy,
         use_rag=use_rag,
-        rag_top_k=rag_top_k,
+        documents_path=documents_path,
         enable_tools=enable_tools,
         max_tool_steps=max_tool_steps,
         enable_atomic_fact_decomposition=enable_atomic_fact_decomposition,
         temperature=temperature,
         verbose=verbose
     )
-    return UnifiedPipeline(llm, retriever, config)
+    return UnifiedPipeline(llm, config)
 
 
 # Main test function

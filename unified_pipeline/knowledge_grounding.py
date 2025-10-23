@@ -1,15 +1,11 @@
-"""
-Knowledge Grounding: Basic RAG (Retrieval-Augmented Generation)
-Simple retrieval system for grounding LLM responses with external knowledge
-"""
-
-from typing import List, Dict, Any, Optional
+import re
 from dataclasses import dataclass, field
+from typing import List, Dict, Any
+from typing import Optional
 
 
 @dataclass
 class Evidence:
-    """Represents a piece of retrieved evidence"""
     content: str
     source: str
     relevance_score: float = 0.0
@@ -17,44 +13,27 @@ class Evidence:
 
 
 class SimpleRetriever:
-    """
-    Simple in-memory retriever for demonstration
-    In production, replace with vector DB (ChromaDB, Pinecone, etc.)
-    """
-    
-    def __init__(self, documents: Optional[List[Dict[str, str]]] = None):
+
+    def __init__(self, documents_path: str):
+        # Load documents from a simple JSONL file
+        import json
+        with open(documents_path, "r", encoding="utf-8") as f:
+            documents = [json.loads(line) for line in f]
         self.documents = documents or []
-    
-    def add_documents(self, documents: List[Dict[str, str]]):
-        """Add documents to the knowledge base"""
-        self.documents.extend(documents)
-    
-    def retrieve(self, query: str, top_k: int = 5) -> List[Evidence]:
-        """
-        Simple keyword-based retrieval
-        In production, use semantic embeddings
-        """
-        
-        # Simple scoring: count query term occurrences
-        query_terms = set(query.lower().split())
-        scored_docs = []
-        
-        for doc in self.documents:
-            content = doc.get("content", "")
-            source = doc.get("source", "unknown")
-            
-            # Count matching terms
-            content_lower = content.lower()
-            score = sum(1 for term in query_terms if term in content_lower)
-            score = score / max(len(query_terms), 1)  # Normalize
-            
-            if score > 0:
-                scored_docs.append((score, content, source))
-        
-        # Sort by score and return top_k
-        scored_docs.sort(reverse=True, key=lambda x: x[0])
-        
-        return [
-            Evidence(content=content, source=source, relevance_score=score)
-            for score, content, source in scored_docs[:top_k]
-        ]
+
+    def retrieve(self, query: str) -> List[Evidence]:
+        question = self.get_question_from_prompt(query).strip()
+        for document in self.documents:
+            q = document.get("question", "").strip()
+            if q and q.lower() == question.lower():
+                return [Evidence(content=document.get("context", ""),
+                                 source=document.get("uuid", "unknown"),
+                                 relevance_score=1.0)]
+        return []
+
+    def get_question_from_prompt(self, prompt: str) -> Optional[str]:
+        pattern = r"Question:\s*(.*?)\s*Based on the provided context"
+        match = re.search(pattern, prompt, re.DOTALL | re.IGNORECASE)
+        if not match:
+            return None
+        return match.group(1).strip()

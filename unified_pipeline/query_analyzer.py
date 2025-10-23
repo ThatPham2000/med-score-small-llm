@@ -81,8 +81,6 @@ Respond in JSON format:
 
         # RAG
         config["use_rag"] = characteristics.needs_knowledge and not config["enable_atomic_fact_decomposition"]
-        if config["use_rag"]:
-            config["rag_top_k"] = 5
 
         # Temperature
         if characteristics.query_type == "mathematical":
