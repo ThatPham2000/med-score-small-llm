@@ -13,37 +13,37 @@ class ChainOfThoughtReasoner:
             "reasoning_steps": [
                 # Step 1: Identify main medical concepts
                 "1. IDENTIFY MAIN MEDICAL CONCEPTS: First, identify the main medical concepts in the sentence - conditions, treatments, medications, procedures, or symptoms",
-                
+
                 # Step 2: Break down into verifiable facts
                 "2. BREAK DOWN INTO VERIFIABLE FACTS: Then, break down each concept into verifiable facts that can be independently assessed",
-                
+
                 # Step 3: Ensure objectivity and verifiability
                 "3. ENSURE OBJECTIVITY AND VERIFIABILITY: Next, ensure each fact is objective and can be verified against reliable medical sources",
-                
+
                 # Step 4: Validate completeness and context
                 "4. VALIDATE COMPLETENESS AND CONTEXT: Then, validate that each fact is complete and contextually appropriate for medical assessment",
-                
+
                 # Step 5: MedScore Problem 1 - Filter unverifiable claims
                 "5. FILTER UNVERIFIABLE CLAIMS: Remove personal narratives, patient-specific interactions, and bedside manner statements. Exclude: personal experiences ('I spoke with your doctor'), patient interactions, and subjective statements",
-                
+
                 # Step 6: MedScore Problem 2 - Prevent hallucinated claims
                 "6. PREVENT HALLUCINATED CLAIMS: Ensure all claims are grounded in the original sentence. Verify no additional information beyond the sentence, no distortion of original meaning, and no irrelevant information",
-                
+
                 # Step 7: MedScore Problem 3 - Preserve complete claims
                 "7. PRESERVE COMPLETE CLAIMS: Maintain important modifiers, conditional statements, temporal information, and cause-effect relationships. Ensure no critical medical details are lost",
-                
+
                 # Step 8: MedScore Problem 4 - Transform to declarative format
-                "8. TRANSFORM TO DECLARATIVE FORMAT: Convert imperatives to declaratives, remove nested sub-clauses, and ensure declarative sentence structure. Transform 'They said [claim]' to '[claim]'",
-                
+                "8. TRANSFORM TO DECLARATIVE FORMAT: Convert imperatives to declaratives, remove nested sub-clauses, and ensure declarative sentence structure. Transform reported speech into factual statements (e.g., 'They said/believed/mentioned that [claim]' to '[claim]')",
+
                 # Step 9: MedScore Problem 5 - Resolve context-dependent claims
                 "9. RESOLVE CONTEXT-DEPENDENT CLAIMS: Replace ALL pronouns with specific entities from context: 'it/this/that/these/those' → specific medical terms, 'his/her/your/their' → specific persons, 'they/them' → specific medical professionals",
-                
+
                 # Step 10: MedScore Problem 6 - Eliminate redundant claims
                 "10. ELIMINATE REDUNDANT CLAIMS: Remove duplicate or minimally different versions of the same fact. Focus on distinct, non-overlapping medical facts",
-                
+
                 # Step 11: MedScore Problem 7 - Ensure comprehensive coverage
                 "11. ENSURE COMPREHENSIVE COVERAGE: Verify all important medical information is extracted. Don't miss key facts from the sentence. Maintain completeness of medical content",
-                
+
                 # Step 12: Review and refine for accuracy
                 "12. REVIEW AND REFINE FOR ACCURACY: Review each extracted fact for: objectivity, verifiability, completeness, accuracy, and medical relevance. Ensure each fact can stand alone as an independent medical statement",
             ],
@@ -122,5 +122,3 @@ Begin your systematic reasoning:"""
                 steps.append(step_content)
 
         return steps
-
-
