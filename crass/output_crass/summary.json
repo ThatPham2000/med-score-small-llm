@@ -7,11 +7,11 @@
     "accuracy": 0.9088
   },
   "llm_only": {
-    "correct": 241,
+    "correct": 238,
     "total": 274,
-    "accuracy": 0.8796
+    "accuracy": 0.8686
   },
   "comparison": {
-    "pipeline_minus_llm_only": 0.0292
+    "pipeline_minus_llm_only": 0.0401
   }
 }
