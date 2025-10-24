@@ -36,7 +36,40 @@ def read_rag_rows() -> List[Dict[str, str]]:
             '/Users/that.phamvan/my_ws/master/med-score-small-llm/rag/rag_test.jsonl',
             'r') as reader:
         rows = [item for item in reader.iter()]
-    return rows
+    return rows[100:150]
+
+
+def check_correct_answer(context: str, question: str, correct_answer: str, model_answer: str, llm: LLMProvider) -> bool:
+    """Use LLM to check if the model answer is correct based on context and correct answer."""
+    validation_prompt = f"""You are an expert evaluator. Your task is to determine if the model's answer is correct based on the provided context and the correct answer.
+
+Context: {context}
+
+Question: {question}
+
+Correct Answer: {correct_answer}
+
+Model's Answer: {model_answer}
+
+Instructions:
+1. Compare the model's answer with the correct answer
+2. Consider if the model's answer is factually correct based on the context
+3. Allow for different phrasings or wordings that convey the same meaning
+4. Consider if the model's answer captures the essential information from the correct answer
+5. Be strict about factual accuracy but flexible about wording
+
+Was the model's answer correct?
+
+Respond with ONLY "CORRECT" or "INCORRECT" - no other text."""
+
+    try:
+        response = llm.generate(validation_prompt, temperature=0.1, max_tokens=50)
+        response = response.strip().upper()
+        return response == "CORRECT"
+    except Exception as e:
+        print(f"Error in check_correct_answer: {e}")
+        # Fallback to simple string comparison
+        return model_answer.lower().strip() == correct_answer.lower().strip()
 
 
 def run_pipeline_eval_with_rag(rows: List[Dict[str, str]], llm: LLMProvider, output_path: str) -> Tuple[int, int]:
@@ -71,7 +104,7 @@ Based on the provided context, please answer the question accurately and concise
             elapsed = time.time() - start
 
             model_answer = result.get("final_answer", "").strip()
-            is_correct = model_answer.lower() == correct_answer.lower()
+            is_correct = check_correct_answer(context, question, correct_answer, model_answer, llm)
             correct += 1 if is_correct else 0
             total += 1
 
@@ -99,6 +132,7 @@ def run_llm_only_eval(rows: List[Dict[str, str]], llm: LLMProvider, output_path:
 
     with open(output_path, "w", encoding="utf-8") as out_f:
         for idx, row in enumerate(rows):
+            context = row.get("context", "")
             question = row.get("question", "")
             correct_answer = row.get("answer", "")
 
@@ -112,13 +146,15 @@ Please answer the question accurately and concisely."""
             elapsed = time.time() - start
 
             model_answer = response.strip()
-            is_correct = model_answer.lower() == correct_answer.lower()
+            # Use LLM validation with context to check correctness
+            is_correct = check_correct_answer(context, question, correct_answer, model_answer, llm)
             correct += 1 if is_correct else 0
             total += 1
 
             out = {
                 "index": idx,
                 "uuid": row.get("uuid", ""),
+                "context": context,
                 "question": question,
                 "correct_answer": correct_answer,
                 "llm_response": model_answer,

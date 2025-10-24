@@ -1,0 +1,18 @@
+{
+  "dataset": "neural-bridge/rag-dataset-1200",
+  "model": "gemma3:12b",
+  "pipeline_with_rag": {
+    "correct": 44,
+    "total": 50,
+    "accuracy": 0.88
+  },
+  "llm_only": {
+    "correct": 8,
+    "total": 50,
+    "accuracy": 0.16
+  },
+  "comparison": {
+    "pipeline_with_rag_minus_llm_only": 0.72,
+    "rag_benefit": "Pipeline with RAG uses context field, LLM-only uses only question field"
+  }
+}
