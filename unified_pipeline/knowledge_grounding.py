@@ -16,10 +16,13 @@ class SimpleRetriever:
 
     def __init__(self, documents_path: str):
         # Load documents from a simple JSONL file
-        import json
-        with open(documents_path, "r", encoding="utf-8") as f:
-            documents = [json.loads(line) for line in f]
-        self.documents = documents or []
+        if documents_path:
+            import json
+            with open(documents_path, "r", encoding="utf-8") as f:
+                documents = [json.loads(line) for line in f]
+            self.documents = documents or []
+        else:
+            self.documents = []
 
     def retrieve(self, query: str) -> List[Evidence]:
         question = self.get_question_from_prompt(query).strip()
