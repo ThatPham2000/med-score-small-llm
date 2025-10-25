@@ -608,7 +608,7 @@ Separate the reporting frame (e.g., "The doctor believes that...", "The study sh
 (This step solves: Incorrectly structured claims)
 
 Step 3: DECONTEXTUALIZE - Make the claim standalone.
-Replace ALL pronouns (it, they, your) and general terms (the medication) with the specific entities from the context. Generalize patient-specific terms like "your symptoms" to "symptoms" to create a universal fact.
+Replace ALL pronouns (it, they, your) and general terms (the medication) with the specific entities from the context. Generalize patient-specific terms like "your symptoms" to "what is your symptoms in the context" to create a universal fact.
 (This step solves: Context-Dependent Claims)
 
 Step 4: DECOMPOSE - Break it down into atomic facts.
