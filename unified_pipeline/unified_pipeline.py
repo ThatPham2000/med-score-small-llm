@@ -608,12 +608,12 @@ Separate the reporting frame (e.g., "The doctor believes that...", "The study sh
 (This step solves: Incorrectly structured claims)
 
 Step 3: DECONTEXTUALIZE - Make the claim standalone.
-Replace ALL pronouns (it, they, your) and general terms (the medication) with the specific entities from the context. Generalize patient-specific terms like "your symptoms" to "what is your symptoms in the context" to create a universal fact.
+Replace ALL pronouns (it, they, your) and general terms (the medication, your symptoms) with the specific entities they refer to within the context. For example, "your symptoms" should be replaced with the actual symptoms mentioned, like "irregular periods and extreme pain". This ensures each fact can be understood without the original text.
 (This step solves: Context-Dependent Claims)
 
 Step 4: DECOMPOSE - Break it down into atomic facts.
 Break the verifiable clause into the smallest possible pieces of information. Each piece must represent a single, distinct medical concept.
- - Handle Conjunctions: If a subject is linked to multiple medical concepts (e.g., 'symptoms are related to A and B'), you must create a separate fact for each link (Fact 1: 'symptoms are related to A', Fact 2: 'symptoms are related to B').
+ - Handle Conjunctions: If a subject is linked to multiple medical concepts (e.g., 'Cough are related to A and B'), you must create a separate fact for each link (Fact 1: 'Cough are related to A', Fact 2: 'Cough are related to B').
 (This step solves: Hallucinated Claims)
 
 Step 5: RECONSTRUCT - Build complete, declarative facts.
@@ -669,7 +669,7 @@ Reasoning:
 Step 1: TRIAGE. The frame "They believe that..." indicates a factual report. I will proceed.
 Step 2: ISOLATE CONTENT & STRIP REPORTING FRAME. The reporting frame is "They believe that". The core medical content is: "your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods."
 	
-Step 3: DECONTEXTUALIZE. "your symptoms" is generalized to "Irregular periods and extreme pain", "your body" is generalized to "the body", "your menstrual cycle" is generalized to "the menstrual cycle".
+Step 3: DECONTEXTUALIZE. "your symptoms" is replaced with its specific meaning from the context: "Irregular periods and extreme pain". "your body" is replaced with "the body", and "your menstrual cycle" is replaced with "the menstrual cycle".
 Step 4: DECOMPOSE. I will break the content into all its distinct concepts, applying the conjunction rule:
  - Concept 1: The link between symptoms and the first condition.
  - Concept 2: The definition of the first condition.
