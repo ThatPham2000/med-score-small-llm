@@ -613,7 +613,7 @@ Replace ALL pronouns (it, they, your) and general terms (the medication, your sy
 
 Step 4: DECOMPOSE - Break it down into atomic facts.
 Break the verifiable clause into the smallest possible pieces of information. Each piece must represent a single, distinct medical concept.
- - Handle Conjunctions: If a subject is linked to multiple medical concepts (e.g., 'Cough are related to A and B'), you must create a separate fact for each link (Fact 1: 'Cough are related to A', Fact 2: 'Cough are related to B').
+ - Critical Conjunction Rule: If a subject is linked to multiple medical concepts (e.g., 'Cough are related to A and B'), you must create a separate fact for each link (Fact 1: 'Cough are related to A', Fact 2: 'Cough are related to B'). If multiple subjects or predicates are linked by "and", you MUST create a separate fact for each. (e.g., 'A and B are causes' becomes 'A is a cause' and 'B is a cause')
 (This step solves: Hallucinated Claims)
 
 Step 5: RECONSTRUCT - Build complete, declarative facts.
