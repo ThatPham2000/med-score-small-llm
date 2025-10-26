@@ -36,8 +36,6 @@ class DecomposerSmallLLM(Decomposer):
 
 Please breakdown the following sentence into independent facts: {sentence}
 
-IMPORTANT: Extract ONE medical concept per claim. Use simple, declarative sentences.
-
 Facts:
 """
 
