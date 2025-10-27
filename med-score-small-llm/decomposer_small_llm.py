@@ -171,11 +171,13 @@ Now, for your task, follow the same reasoning process."""
                 decomp = {k: v for k, v in d_input.items() if k != "context"}
                 decomp["claim"] = claim
                 decomp["claim_id"] = idx
+                decomp["model_response"] = completion
                 decompositions.append(decomp)
 
             if not claim_list:
                 decomp = {k: v for k, v in d_input.items() if k != "context"}
                 decomp["claim"] = None
+                decomp["model_response"] = completion
                 decompositions.append(decomp)
 
         return decompositions
