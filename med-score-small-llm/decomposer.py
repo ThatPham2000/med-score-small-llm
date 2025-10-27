@@ -37,7 +37,6 @@ class Decomposer(object):
                     {"role": "user", "content": formatted_input}
                 ])
 
-        # messages = [messages[0], messages[1]]
         # Async calls for batch_size items
         all_completions = []
         n_iter = len(messages) // self.batch_size

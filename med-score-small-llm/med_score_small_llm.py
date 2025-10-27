@@ -15,9 +15,7 @@ from llm_ollama import LLMOllama
 from llm_openai import LLMOpenAI
 from utils import parse_sentences
 from verifier_internal import VerifierInternal
-# from verifier_internal_small_llm import VerifierInternalSmallLLM
 from verifier_provided_evidence import VerifierProvidedEvidence
-# from verifier_provided_evidence_small_llm import VerifierProvidedEvidenceSmallLLM
 
 
 def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
@@ -49,10 +47,7 @@ def initialize_decomposer(
     llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
 
     if mode == "small_llm":
-        return DecomposerSmallLLM(
-            provider=decomposition_llm_provider,
-            llm=llm,
-        )
+        return DecomposerSmallLLM(llm=llm)
     if mode == "medscore":
         return DecomposerMedScore(llm)
     if mode == "factscore":
