@@ -30,20 +30,23 @@ class DecomposeDnDScore(Decomposer):
             subclaim_dict = ast.literal_eval(subclaim_str)
             explanation = extra.split("##EXPLANATION##:")[-1]
 
-            decomp = {k: v for k, v in d_input.items() if k != "context"}
-
             # Error: malformed response
             if subclaim_dict is None:
+                decomp = {k: v for k, v in d_input.items() if k != "context"}
                 # logger.warning(f"Invalid dictionary. Skipping {d_input['id']=} {d_input['sentence_id']=}: {subclaim_dict=}")
                 decomp["claim"] = None
+                decomp["model_response"] = completion
+                decompositions.append(decomp)
 
             for idx, claim_dict in enumerate(subclaim_dict):
+                decomp = {k: v for k, v in d_input.items() if k != "context"}
                 decomp["claim"] = claim_dict["decontextualized"]
                 decomp["claim_id"] = idx
                 decomp["claim_meta"] = {
                     "subclaim": claim_dict["subclaim"],
                     "explanation": explanation
                 }
+                decomp["model_response"] = completion
+                decompositions.append(decomp)
 
-            decompositions.append(decomp)
         return decompositions
