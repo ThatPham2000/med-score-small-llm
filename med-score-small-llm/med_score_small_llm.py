@@ -40,8 +40,7 @@ def initialize_decomposer(
         decomposition_mode: str,
         decomposition_llm_provider: str,
         decomposition_model_name: str,
-        decomposition_server: Optional[str],
-        reasoning_steps: int = 3,
+        decomposition_server: Optional[str]
 ):
     mode = decomposition_mode.lower()
     llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
@@ -64,8 +63,6 @@ def initialize_verifier(
         verification_model_name: str,
         verification_server: Optional[str],
         provided_evidence: Optional[Dict[str, str]] = None,
-        confidence_threshold: float = 0.7,
-        reasoning_steps: int = 3,
 ):
     """Initialize verifier with multiple modes support"""
     mode = verification_mode.lower()
@@ -77,21 +74,6 @@ def initialize_verifier(
         if provided_evidence is None:
             raise InvalidArgumentException("Provided evidence is required for 'provided' verification mode")
         return VerifierProvidedEvidence(provided_evidence, llm)
-    # if mode == "internal_small_llm":
-    #     return VerifierInternalSmallLLM(
-    #         llm=llm,
-    #         confidence_threshold=confidence_threshold,
-    #         reasoning_steps=reasoning_steps
-    #     )
-    # if mode == "provided_small_llm":
-    #     if provided_evidence is None:
-    #         raise InvalidArgumentException("Provided evidence is required for 'provided_small_llm' verification mode")
-    #     return VerifierProvidedEvidenceSmallLLM(
-    #         provided_evidence=provided_evidence,
-    #         llm=llm,
-    #         confidence_threshold=confidence_threshold,
-    #         reasoning_steps=reasoning_steps
-    #     )
 
     raise IllegalArgumentException(f"Unknown verification mode: {mode}")
 
@@ -122,15 +104,12 @@ class MedScoreSmallLLM(object):
             verification_model_name: str = "llama3.2:3b",
             verification_server: Optional[str] = None,
             provided_evidence: Optional[Dict[str, str]] = None,
-            reasoning_steps: int = 3,
-            confidence_threshold: float = 0.7,
     ):
         self.decomposer = initialize_decomposer(
             decomposition_mode,
             decomposition_llm_provider,
             decomposition_model_name,
             decomposition_server,
-            reasoning_steps,
         )
 
         self.verifier = initialize_verifier(
@@ -139,8 +118,6 @@ class MedScoreSmallLLM(object):
             verification_model_name,
             verification_server,
             provided_evidence,
-            confidence_threshold,
-            reasoning_steps,
         )
 
     def decompose(
@@ -209,12 +186,6 @@ def parse_args():
     parser.add_argument("--provided_evidence_path", type=str, default=None,
                         help="Path to provided evidence file (required for 'provided' mode)")
 
-    # Small LLM specific parameters
-    parser.add_argument("--reasoning_steps", type=int, default=3,
-                        help="Number of reasoning steps for small LLMs")
-    parser.add_argument("--confidence_threshold", type=float, default=0.7,
-                        help="Confidence threshold for verification")
-
     return parser.parse_args()
 
 
@@ -254,8 +225,6 @@ if __name__ == '__main__':
         verification_model_name=args.verification_model_name,
         verification_server=args.verification_server,
         provided_evidence=provided_evidence,
-        reasoning_steps=args.reasoning_steps,
-        confidence_threshold=args.confidence_threshold,
     )
 
     # Process decomposition
