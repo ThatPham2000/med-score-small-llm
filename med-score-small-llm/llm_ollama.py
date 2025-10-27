@@ -31,6 +31,7 @@ class LLMOllama(LLM):
                     "seed": self.seed,
                     "temperature": self.temperature,
                     "top_p": self.top_p,
+                    "num_predict": self.max_tokens,
                 }
             ) if self.ollama_async_client
             else ollama.AsyncClient().chat(
@@ -40,6 +41,7 @@ class LLMOllama(LLM):
                     "seed": self.seed,
                     "temperature": self.temperature,
                     "top_p": self.top_p,
+                    "num_predict": self.max_tokens,
                 }
             )
             for x in batch
