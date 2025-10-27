@@ -322,6 +322,7 @@ if __name__ == '__main__':
         print(f"Score statistics:")
         print(f"  Mean: {statistics.mean(scores):.4f}")
         print(f"  Median: {statistics.median(scores):.4f}")
-        print(f"  Std Dev: {statistics.stdev(scores):.4f}")
+        if len(scores) > 1:
+            print(f"  Std Dev: {statistics.stdev(scores):.4f}")
         print(f"  Min: {min(scores):.4f}")
         print(f"  Max: {max(scores):.4f}")
