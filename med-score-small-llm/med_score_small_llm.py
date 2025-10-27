@@ -199,6 +199,8 @@ if __name__ == '__main__':
     with jsonlines.open(args.input_file) as reader:
         dataset = [item for item in reader.iter()]
 
+    print(f"len dataset: {len(dataset)}")
+
     # Handle provided evidence for 'provided' verification mode
     provided_evidence = None
     if args.verification_mode == "provided" or args.verification_mode == "provided_small_llm":
@@ -245,6 +247,7 @@ if __name__ == '__main__':
 
     # Process verification
     print(f"Running verification with {args.verification_mode} mode...")
+    print(f"len decompositions: {len(decompositions)}")
     verifications = scorer.verify(decompositions)
     with jsonlines.open(verification_output_file, 'w') as writer:
         writer.write_all(verifications)
