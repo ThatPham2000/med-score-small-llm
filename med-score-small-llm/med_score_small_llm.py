@@ -175,7 +175,7 @@ def parse_args():
 
     # Verification
     parser.add_argument("--verification_mode", type=str,
-                        choices=["internal", "provided", "internal_small_llm", "provided_small_llm"],
+                        choices=["internal", "provided"],
                         default="internal_small_llm", help="Verification mode")
     parser.add_argument("--verification_llm_provider", type=str, choices=["ollama", "openapi"],
                         default="ollama", help="LLM provider for verification")
@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
     # Handle provided evidence for 'provided' verification mode
     provided_evidence = None
-    if args.verification_mode == "provided" or args.verification_mode == "provided_small_llm":
+    if args.verification_mode == "provided":
         if args.provided_evidence_path is not None:
             with open(args.provided_evidence_path, "r") as f:
                 provided_evidence = json.load(f)
