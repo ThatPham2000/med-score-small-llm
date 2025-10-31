@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from argparse import ArgumentParser
 from typing import Optional, List, Dict, Any
 
@@ -231,6 +232,7 @@ if __name__ == '__main__':
         provided_evidence=provided_evidence,
     )
 
+    decompose_start_time = time.time()
     # Process decomposition
     decompositions = []
     if not args.verify_only:
@@ -247,12 +249,18 @@ if __name__ == '__main__':
         with jsonlines.open(args.decomposition_input_file, 'r') as reader:
             decompositions = [item for item in reader.iter()]
 
+    decompose_end_time = time.time()
+    print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
+
+    verification_start_time = time.time()
     # Process verification
     print(f"Running verification with {args.verification_mode} mode...")
     print(f"len decompositions: {len(decompositions)}")
     verifications = scorer.verify(decompositions)
     with jsonlines.open(verification_output_file, 'w') as writer:
         writer.write_all(verifications)
+    verification_end_time = time.time()
+    print(f"Verification time: {verification_end_time - verification_start_time:.2f} seconds")
 
     # Combine results
     combined_output = {
