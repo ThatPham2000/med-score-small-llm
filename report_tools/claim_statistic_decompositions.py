@@ -2,12 +2,15 @@
 """
 CLI tool to analyze decomposition JSONL files and calculate metrics:
 - Average number of claims per response
+- Standard deviation of #claims/response
 - Average number of claims per sentence
+- Standard deviation of #claims/sentence
 - Average 0-claim rate per response
 """
 
 import json
 import argparse
+import statistics
 from collections import defaultdict
 from typing import Dict, Set, List, Tuple
 
@@ -75,11 +78,36 @@ def calculate_metrics(data: List[Dict]) -> Dict[str, float]:
         if claims_per_response else 0.0
     )
     
+    # Calculate standard deviation of claims per response
+    std_claims_per_response = (
+        statistics.stdev(claims_per_response) 
+        if len(claims_per_response) > 1 else 0.0
+    )
+    
     # Calculate average claims per sentence
+    # Group records by sentence to calculate claims per sentence
+    sentence_claims: Dict[Tuple[str, int], List[Dict]] = defaultdict(list)
+    for record in data:
+        response_id = record['id']
+        sentence_id = record.get('sentence_id', 0)
+        sentence_claims[(response_id, sentence_id)].append(record)
+    
+    claims_per_sentence = []
+    for sentence_key, records in sentence_claims.items():
+        # Count non-null claims for this sentence
+        num_claims = sum(1 for r in records if r.get('claim') is not None)
+        claims_per_sentence.append(num_claims)
+    
     num_sentences = len(unique_sentences)
     avg_claims_per_sentence = (
         total_claims / num_sentences 
         if num_sentences > 0 else 0.0
+    )
+    
+    # Calculate standard deviation of claims per sentence
+    std_claims_per_sentence = (
+        statistics.stdev(claims_per_sentence) 
+        if len(claims_per_sentence) > 1 else 0.0
     )
     
     # Calculate 0-claim rate
@@ -91,7 +119,9 @@ def calculate_metrics(data: List[Dict]) -> Dict[str, float]:
     
     return {
         'avg_claims_per_response': avg_claims_per_response,
+        'std_claims_per_response': std_claims_per_response,
         'avg_claims_per_sentence': avg_claims_per_sentence,
+        'std_claims_per_sentence': std_claims_per_sentence,
         'zero_claim_rate': zero_claim_rate,
         'total_responses': num_responses,
         'total_sentences': num_sentences,
@@ -138,7 +168,9 @@ Examples:
     print("DECOMPOSITION ANALYSIS RESULTS")
     print("="*60)
     print(f"\nAverage number of claims per response: {metrics['avg_claims_per_response']:.4f}")
+    print(f"Standard deviation (#claims/response):  {metrics['std_claims_per_response']:.4f}")
     print(f"Average number of claims per sentence:  {metrics['avg_claims_per_sentence']:.4f}")
+    print(f"Standard deviation (#claims/sentence): {metrics['std_claims_per_sentence']:.4f}")
     print(f"Average 0-claim rate per response:      {metrics['zero_claim_rate']:.2f}%")
     
     if args.verbose:
