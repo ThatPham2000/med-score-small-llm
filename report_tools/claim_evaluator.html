@@ -243,6 +243,13 @@
             box-shadow: 0 6px 16px rgba(0,0,0,0.4);
         }
 
+        .floating-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.6;
+        }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -256,6 +263,20 @@
             padding: 10px;
             border-radius: 4px;
             margin-bottom: 10px;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
         }
 
         .success-message {
@@ -306,6 +327,7 @@
 
         <div id="contentContainer"></div>
 
+        <div class="error" id="errorMessage"></div>
         <div class="success-message" id="successMessage">
             File exported successfully! Check your downloads folder.
         </div>
@@ -351,6 +373,7 @@
                     
                     renderData();
                     updateStats();
+                    checkExportButton();
                 } catch (error) {
                     alert('Error parsing JSONL file: ' + error.message);
                     console.error(error);
@@ -478,6 +501,7 @@
                             radio.addEventListener('change', function() {
                                 updateEvaluation(responseIndex, claimIndex, option);
                                 updateStats();
+                                checkExportButton();
                             });
                             
                             const label = document.createElement('label');
@@ -528,7 +552,77 @@
             document.getElementById('completionRate').textContent = completionRate + '%';
         }
 
+        function checkExportButton() {
+            const exportButton = document.getElementById('exportButton');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Check if all claims have manual evaluations
+            let missingEvaluations = [];
+            
+            data.forEach((response, responseIndex) => {
+                if (response.claims) {
+                    response.claims.forEach((claim, claimIndex) => {
+                        if (!claim.manual) {
+                            missingEvaluations.push({
+                                responseId: response.id,
+                                responseIndex: responseIndex,
+                                claimIndex: claimIndex
+                            });
+                        }
+                    });
+                }
+            });
+            
+            if (missingEvaluations.length > 0) {
+                exportButton.disabled = true;
+                exportButton.style.opacity = '0.6';
+                
+                // Show error message if user tried to export
+                if (errorMessage.classList.contains('show')) {
+                    const missingCount = missingEvaluations.length;
+                    errorMessage.textContent = `Cannot export: ${missingCount} claim${missingCount > 1 ? 's' : ''} still need${missingCount === 1 ? 's' : ''} manual evaluation. Please evaluate all claims before exporting.`;
+                }
+            } else {
+                exportButton.disabled = false;
+                exportButton.style.opacity = '1';
+                errorMessage.classList.remove('show');
+            }
+        }
+
         function exportToJSONL() {
+            // Check if all evaluations are complete
+            let missingEvaluations = [];
+            
+            data.forEach((response, responseIndex) => {
+                if (response.claims) {
+                    response.claims.forEach((claim, claimIndex) => {
+                        if (!claim.manual) {
+                            missingEvaluations.push({
+                                responseId: response.id,
+                                responseIndex: responseIndex,
+                                claimIndex: claimIndex
+                            });
+                        }
+                    });
+                }
+            });
+            
+            if (missingEvaluations.length > 0) {
+                const errorMessage = document.getElementById('errorMessage');
+                const missingCount = missingEvaluations.length;
+                errorMessage.textContent = `Cannot export: ${missingCount} claim${missingCount > 1 ? 's' : ''} still need${missingCount === 1 ? 's' : ''} manual evaluation. Please evaluate all claims before exporting.`;
+                errorMessage.classList.add('show');
+                
+                // Scroll to error message
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+                // Hide error message after 5 seconds
+                setTimeout(() => {
+                    errorMessage.classList.remove('show');
+                }, 5000);
+                
+                return;
+            }
             // Prepare output data
             const outputData = data.map(response => {
                 const outputResponse = {
@@ -582,6 +676,8 @@
             
             // Show success message
             const successMsg = document.getElementById('successMessage');
+            const errorMsg = document.getElementById('errorMessage');
+            errorMsg.classList.remove('show');
             successMsg.style.display = 'block';
             setTimeout(() => {
                 successMsg.style.display = 'none';
