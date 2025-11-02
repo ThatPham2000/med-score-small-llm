@@ -72,10 +72,6 @@ def evaluate(file: str):
 
 
 if __name__ == '__main__':
-    file1 = '/Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/output_pipeline_gemma3_12b/small_llm_provided_med_score_output.jsonl'
-    file2 = '/Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/output_pure_gemma3_12b/medscore_provided_med_score_output.jsonl'
-    file3 = '/Users/that.phamvan/my_ws/master/med-score-small-llm/demo/Provided_medscore_output.jsonl'
+    file = '/Users/that.phamvan/my_ws/master/med-score-small-llm/run_result_with_full_data/output_small_llm_gemma3_12b/small_llm_provided_gpt_oss_med_score_output.jsonl'
 
-    evaluate(file1)
-    evaluate(file2)
-    evaluate(file3)
+    evaluate(file)
