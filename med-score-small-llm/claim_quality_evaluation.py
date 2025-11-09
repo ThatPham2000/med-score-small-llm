@@ -135,7 +135,7 @@ class ClaimQualityEvaluation(object):
 
     def format_input(self, context: str, sentence: str, claim: str, other_claims: List[str]) -> str:
         formatted_other_claims = json.dumps(other_claims)
-        prompt = f"""You are a meticulous medical information auditor. Your task is to classify a given "Atomic Claim" by comparing it against its "Context", "Original Sentence" and any "Other Claims" generated from that same sentence.
+        prompt = f"""You are a meticulous medical information auditor. Your task is to classify a given "Atomic Claim" by comparing it against its "Context", "Original Sentence" and any "Other Claims" generated from that same "Original Sentence" of that same "Context".
 "Context" is the response, "Original Sentence" is one sentence from that response, and "Atomic Claim" is a specific claim derived from that sentence.
 
 Your goal is to assign ONE of the following seven labels to the claim:
@@ -149,7 +149,7 @@ Your goal is to assign ONE of the following seven labels to the claim:
 
 GUIDING PRINCIPLE:
 To ensure accuracy, you MUST evaluate the "Atomic Claim" by following these steps IN ORDER. The first category that matches is the correct classification.
-Please note that you ONLY label the information of "Atomic Claim", not the "Original Sentence" or "Context".
+Analyze the "Atomic Claim" in isolation, but use the "Original Sentence" as the single source of truth for grounding and the "Context" to resolve ambiguities (like pronouns).
 
 Step 1: Check for Unverifiable
 Is the claim a personal narrative, a patient-specific experience, or an empathetic "bedside manner" statement? These claims cannot be verified by an external knowledge base.
@@ -186,15 +186,22 @@ Does the claim DROP a critical medical modifier, condition, or nuance from the "
 - If NO: Proceed to Step 6.
 
 Step 6: Check for Redundant
-(This step requires the "Other Claims" list). Is this "Atomic Claim" a minimal rephrasing, a direct duplicate, or a composite of OTHER claims in the provided list?
-- Example 1 (Redundant):
+(This step requires the "Other Claims" list). A claim is redundant ONLY if it meets one of these two specific conditions:
+1.  It is a "direct duplicate" or a "semantically identical rephrasing" of a claim in the "Other Claims" list.
+2.  It is a "composite claim" (e.g., "A and B") and its more atomic parts ("A", "B") are already present in the "Other Claims" list.
+CRITICAL RULE: If the "Atomic Claim" and the claims in "Other Claims" are all distinct, different atomic facts, they are NOT redundant. Do NOT misclassify two different facts as "rephrasings" just because they share a topic.
+- Example 1 (IS Redundant - Composite):
     - Other Claims List: ["Anabolic steroids carry significant risks.", "Anabolic steroids carry potential side effects."]
     - Claim to Evaluate: "Anabolic steroids carry significant risks and potential side effects."
-    - Judgment: This claim is a composite of the other two more-atomic claims and is therefore REDUNDANT.
-- Example 2 (NOT Redundant):
+    - Judgment: This claim is REDUNDANT because it meets Condition 2 (it is a composite of claims already in the list).
+- Example 2 (IS NOT Redundant - Atomic Part):
     - Other Claims List: ["Anabolic steroids carry significant risks and potential side effects.", "Anabolic steroids carry potential side effects."]
     - Claim to Evaluate: "Anabolic steroids carry significant risks."
-    - Judgment: This claim is atomic. It is not a composite of other claims, so it is NOT redundant.
+    - Judgment: This claim is NOT REDUNDANT. It is an atomic fact, not a composite. (It does not meet Condition 1 or 2).
+- Example 3 (IS NOT Redundant - Distinct Facts):
+    - Other Claims List: ["A is likely a B."]
+    - Claim to Evaluate: "B is a common occurrence."
+    - Judgment: This claim is NOT redundant. It is a completely different, distinct atomic fact. One fact is a diagnosis, the other is a definition. It does not meet Condition 1 (it's not a rephrasing) or Condition 2 (it's not a composite).
 - If YES (like Example 1): Label as Redundant. The process stops here.
 - If NO (like Example 2): Proceed to Step 7.
 
@@ -268,7 +275,7 @@ Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
 Step 4: Check for Hallucinated. Grounded in the original. Proceed.
 Step 5: Check for Incomplete. Retains all modifiers. Proceed.
-Step 6: Check for Redundant. The "Other Claims" list includes "Anabolic steroids carry significant risks." and "Anabolic steroids carry potential side effects." The claim being evaluated is a composite of these two other, more atomic claims. This matches. The process stops here.
+Step 6: Check for Redundant. The "Other Claims" list includes "Anabolic steroids carry significant risks." and "Anabolic steroids carry potential side effects." The claim being evaluated is a composite of these two other, more atomic claims. This matches Condition 2 from the instructions. The process stops here.
 Classification: Redundant
 ---
 7. Example: Valid
@@ -281,7 +288,7 @@ Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone ("Anabolic steroids" correctly replaces "these substances"). Proceed.
 Step 4: Check for Hallucinated. Grounded in the original ("may have positive effects on bone health"). Proceed.
 Step 5: Check for Incomplete. Retains the critical modifier "may". Proceed.
-Step 6: Check for Redundant. The claim is atomic and distinct from the "Other Claims" provided. Proceed.
+Step 6: Check for Redundant. The claim is atomic. The "Other Claims" list contains other "distinct atomic facts". This claim is not a duplicate (Condition 1) nor a composite (Condition 2). It is a different fact, just like Example 3 in the main instructions. It is NOT redundant. Proceed.
 Step 7: Assign Valid. The claim has passed all six checks.
 Classification: Valid
 ---
