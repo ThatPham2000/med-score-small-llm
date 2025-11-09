@@ -136,6 +136,7 @@ class ClaimQualityEvaluation(object):
     def format_input(self, context: str, sentence: str, claim: str, other_claims: List[str]) -> str:
         formatted_other_claims = json.dumps(other_claims)
         prompt = f"""You are a meticulous medical information auditor. Your task is to classify a given "Atomic Claim" by comparing it against its "Context", "Original Sentence" and any "Other Claims" generated from that same sentence.
+"Context" is the response, "Original Sentence" is one sentence from that response, and "Atomic Claim" is a specific claim derived from that sentence.
 
 Your goal is to assign ONE of the following seven labels to the claim:
 1. Valid
@@ -148,30 +149,31 @@ Your goal is to assign ONE of the following seven labels to the claim:
 
 GUIDING PRINCIPLE:
 To ensure accuracy, you MUST evaluate the "Atomic Claim" by following these steps IN ORDER. The first category that matches is the correct classification.
+Please note that you ONLY label the information of "Atomic Claim", not the "Original Sentence" or "Context".
 
 Step 1: Check for Unverifiable
 Is the claim a personal narrative, a patient-specific experience, or an empathetic "bedside manner" statement? These claims cannot be verified by an external knowledge base.
 - General Examples: "I spoke with your doctor.", "You are experiencing pain.", "Your pain can be very tiring."
-- If YES: Label as Unverifiable.
+- If YES: Label as Unverifiable. The process stops here.
 - If NO: Proceed to Step 2.
 
 Step 2: Check for Incorrectly structured
 Is the claim a question, a command, or does it incorrectly include the reporting frame (e.g., "The doctor said...")?
 - General Examples: "Take ibuprofen for your pain.", "Did you take the medication?", "The study shows that aspirin is effective."
-- If YES: Label as Incorrectly structured.
+- If YES: Label as Incorrectly structured. The process stops here.
 - If NO: Proceed to Step 3.
 
 Step 3: Check for Context-dependent
 Does the claim contain unresolved pronouns (he, she, it, your, their) or vague references ("the medication," "the symptoms," "the condition") that make it impossible to understand without the original context?
 - General Examples: "It may cause side effects.", "Your symptoms could be related to anovulatory cycles." (This is context-dependent unless "your symptoms" was replaced with "Irregular periods and extreme pain").
-- If YES: Label as Context-dependent.
+- If YES: Label as Context-dependent. The process stops here.
 - If NO: Proceed to Step 4.
 
 Step 4: Check for Hallucinated
 Does the claim add ANY new information (even a single word) that was not in the "Original Sentence"? Does it distort or contradict the original meaning?
-    - General Original: "Aspirin may help reduce pain."
+- General Original: "Aspirin may help reduce pain."
 - General Hallucinated Example: "Aspirin, WHICH IS AN NSAID, may help reduce pain." (Adds "which is an NSAID").
-- If YES: Label as Hallucinated.
+- If YES: Label as Hallucinated. The process stops here.
 - If NO: Proceed to Step 5.
 
 Step 5: Check for Incomplete
@@ -180,7 +182,7 @@ Does the claim DROP a critical medical modifier, condition, or nuance from the "
 - General Incomplete Example: "Anabolic steroids have positive effects on muscle health." (Loses the critical modifier "may").
 - General Original 2: "Growth hormones should only be taken if there is a diagnosed deficiency."
 - General Incomplete Example 2: "Growth hormones should only be taken." (Loses the condition "if there is a diagnosed deficiency").
-- If YES: Label as Incomplete.
+- If YES: Label as Incomplete. The process stops here.
 - If NO: Proceed to Step 6.
 
 Step 6: Check for Redundant
@@ -193,7 +195,7 @@ Step 6: Check for Redundant
     - Other Claims List: ["Anabolic steroids carry significant risks and potential side effects.", "Anabolic steroids carry potential side effects."]
     - Claim to Evaluate: "Anabolic steroids carry significant risks."
     - Judgment: This claim is atomic. It is not a composite of other claims, so it is NOT redundant.
-- If YES (like Example 1): Label as Redundant.
+- If YES (like Example 1): Label as Redundant. The process stops here.
 - If NO (like Example 2): Proceed to Step 7.
 
 Step 7: Assign Valid
@@ -211,7 +213,7 @@ Original Sentence: "I spoke to your doctor, and they expressed concerns about th
 Atomic Claim to Evaluate: "I spoke to your doctor."
 Other Claims: []
 Reasoning:
-Step 1: Check for Unverifiable. The claim "I spoke to your doctor" describes a personal interaction or narrative. It cannot be externally verified. This matches.
+Step 1: Check for Unverifiable. The claim "I spoke to your doctor" describes a personal interaction or narrative. It cannot be externally verified. This matches. The process stops here.
 Classification: Unverifiable
 ---
 2. Example: Incorrectly structured
@@ -220,7 +222,7 @@ Atomic Claim to Evaluate: "The doctor noted that these substances may have posit
 Other Claims: []
 Reasoning:
 Step 1: Check for Unverifiable. The claim is not a personal narrative. Proceed.
-Step 2: Check for Incorrectly structured. The claim incorrectly includes the reporting frame ("The doctor noted that..."). This matches.
+Step 2: Check for Incorrectly structured. The claim incorrectly includes the reporting frame ("The doctor noted that..."). This matches. The process stops here.
 Classification: Incorrectly structured
 ---
 3. Example: Context-dependent
@@ -230,7 +232,7 @@ Other Claims: []
 Reasoning:
 Step 1: Check for Unverifiable. The claim is not a personal narrative. Proceed.
 Step 2: Check for Incorrectly structured. The claim is a declarative sentence. Proceed.
-Step 3: Check for Context-dependent. The claim relies on the unresolved pronoun "They." Without the context, the claim is not standalone. This matches.
+Step 3: Check for Context-dependent. The claim relies on the unresolved pronoun "They." Without the context, the claim is not standalone. This matches. The process stops here.
 Classification: Context-dependent
 ---
 4. Example: Hallucinated
@@ -241,7 +243,7 @@ Reasoning:
 Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative sentence. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
-Step 4: Check for Hallucinated. The original sentence uses "positive effect". The claim distorts this to "negative effect". This is a distortion of the original meaning. This matches.
+Step 4: Check for Hallucinated. The original sentence uses "positive effect". The claim distorts this to "negative effect". This is a distortion of the original meaning. This matches. The process stops here.
 Classification: Hallucinated
 ---
 5. Example: Incomplete
@@ -253,7 +255,7 @@ Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative sentence. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
 Step 4: Check for Hallucinated. The claim does not add new information. Proceed.
-Step 5: Check for Incomplete. The original sentence contains the critical modifier "may". The claim omits "may", changing the meaning from a possibility to a definite fact. This matches.
+Step 5: Check for Incomplete. The original sentence contains the critical modifier "may". The claim omits "may", changing the meaning from a possibility to a definite fact. This matches. The process stops here.
 Classification: Incomplete
 
 6. Example: Redundant
@@ -266,7 +268,7 @@ Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
 Step 4: Check for Hallucinated. Grounded in the original. Proceed.
 Step 5: Check for Incomplete. Retains all modifiers. Proceed.
-Step 6: Check for Redundant. The "Other Claims" list includes "Anabolic steroids carry significant risks." and "Anabolic steroids carry potential side effects." The claim being evaluated is a composite of these two other, more atomic claims. This matches.
+Step 6: Check for Redundant. The "Other Claims" list includes "Anabolic steroids carry significant risks." and "Anabolic steroids carry potential side effects." The claim being evaluated is a composite of these two other, more atomic claims. This matches. The process stops here.
 Classification: Redundant
 ---
 7. Example: Valid
