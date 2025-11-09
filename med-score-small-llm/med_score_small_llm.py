@@ -7,6 +7,7 @@ from typing import Optional, List, Dict, Any
 import jsonlines
 import ollama
 
+from claim_quality_evaluation import ClaimQualityEvaluation
 from decompose_dnd_score import DecomposeDnDScore
 from decomposer_fact_score import DecomposerFactScore
 from decomposer_med_score import DecomposerMedScore
@@ -58,6 +59,17 @@ def initialize_decomposer(
         raise IllegalArgumentException(f"Unknown decomposition mode: {mode}")
 
 
+def initialize_claim_quality_evaluation(
+        claim_quality_evaluation_llm_provider: str,
+        claim_quality_evaluation_model_name: str,
+        claim_quality_evaluation_server: Optional[str],
+):
+    llm = initialize_llm(claim_quality_evaluation_llm_provider, claim_quality_evaluation_model_name,
+                         claim_quality_evaluation_server)
+
+    return ClaimQualityEvaluation(llm=llm)
+
+
 def initialize_verifier(
         verification_mode: str,
         verification_llm_provider: str,
@@ -105,6 +117,9 @@ class MedScoreSmallLLM(object):
             verification_model_name: str = "llama3.2:3b",
             verification_server: Optional[str] = None,
             provided_evidence: Optional[Dict[str, str]] = None,
+            claim_quality_evaluation_llm_provider: str = "ollama",
+            claim_quality_evaluation_model_name: str = "llama3.2:3b",
+            claim_quality_evaluation_server: Optional[str] = None,
     ):
         self.decomposer = initialize_decomposer(
             decomposition_mode,
@@ -119,6 +134,12 @@ class MedScoreSmallLLM(object):
             verification_model_name,
             verification_server,
             provided_evidence,
+        )
+
+        self.claim_quality_evaluation = initialize_claim_quality_evaluation(
+            claim_quality_evaluation_llm_provider,
+            claim_quality_evaluation_model_name,
+            claim_quality_evaluation_server,
         )
 
     def decompose(
@@ -140,6 +161,12 @@ class MedScoreSmallLLM(object):
 
         decompositions = self.decomposer.do_decompose(decomposer_input)
         return decompositions
+
+    def evaluate_claim_quality(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        non_empty_decompositions = [d for d in decompositions if d["claim"] is not None]
+        claim_quality_evaluation_output = self.claim_quality_evaluation.do_claim_quality_evaluation(
+            non_empty_decompositions)
+        return claim_quality_evaluation_output
 
     def verify(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Enhanced verification with reasoning for small LLMs"""
@@ -173,6 +200,15 @@ def parse_args():
                         help="Path to decomposition input file (required for verify_only mode)")
     parser.add_argument("--decomposition_prompt_path", type=str, default=None,
                         help="Path to custom decomposition prompt")
+
+    # Claim quality evaluation
+    parser.add_argument("--evaluate_claim_quality", action="store_true")
+    parser.add_argument("--claim_quality_evaluation_llm_provider", type=str, choices=["ollama", "openapi"],
+                        default="ollama", help="LLM provider for claim quality evaluation")
+    parser.add_argument("--claim_quality_evaluation_model_name", type=str, default="gemma3:12b",
+                        help="Model name for claim quality evaluation")
+    parser.add_argument("--claim_quality_evaluation_server", type=str, default=None,
+                        help="Server URL for claim quality evaluation LLM")
 
     # Verification
     parser.add_argument("--verification_mode", type=str,
@@ -230,6 +266,9 @@ if __name__ == '__main__':
         verification_model_name=args.verification_model_name,
         verification_server=args.verification_server,
         provided_evidence=provided_evidence,
+        claim_quality_evaluation_llm_provider=args.claim_quality_evaluation_llm_provider,
+        claim_quality_evaluation_model_name=args.claim_quality_evaluation_model_name,
+        claim_quality_evaluation_server=args.claim_quality_evaluation_server,
     )
 
     decompose_start_time = time.time()
@@ -252,6 +291,24 @@ if __name__ == '__main__':
     decompose_end_time = time.time()
     print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
 
+    decompositions=decompositions[0:10]
+    # Evaluate claim quality
+    time_claim_quality_start = time.time()
+    # Add context to each decomposition
+    decompositions_with_context = []
+    for item in decompositions:
+        for data_item in dataset:
+            if data_item["id"] == item["id"]:
+                item["context"] = data_item["response"]
+                break
+        decompositions_with_context.append(item)
+    claim_quality_decompositions = scorer.evaluate_claim_quality(decompositions_with_context)
+    claim_quality_output_file = os.path.join(args.output_dir, f"{mode_prefix}_claim_quality_evaluations.jsonl")
+    with jsonlines.open(claim_quality_output_file, 'w') as writer:
+        writer.write_all(claim_quality_decompositions)
+    time_claim_quality_end = time.time()
+    print(f"Claim quality evaluation time: {time_claim_quality_end - time_claim_quality_start:.2f} seconds")
+    exit(0)
     verification_start_time = time.time()
     # Process verification
     print(f"Running verification with {args.verification_mode} mode...")
