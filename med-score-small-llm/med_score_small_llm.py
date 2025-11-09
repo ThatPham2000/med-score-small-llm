@@ -291,7 +291,7 @@ if __name__ == '__main__':
     decompose_end_time = time.time()
     print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
 
-    decompositions=decompositions[0:10]
+    decompositions=decompositions[0:10] # todo
     # Evaluate claim quality
     time_claim_quality_start = time.time()
     # Add context to each decomposition
@@ -308,7 +308,7 @@ if __name__ == '__main__':
         writer.write_all(claim_quality_decompositions)
     time_claim_quality_end = time.time()
     print(f"Claim quality evaluation time: {time_claim_quality_end - time_claim_quality_start:.2f} seconds")
-    exit(0)
+    exit(0) # todo
     verification_start_time = time.time()
     # Process verification
     print(f"Running verification with {args.verification_mode} mode...")
