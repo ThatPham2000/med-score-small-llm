@@ -153,7 +153,7 @@ Analyze the "Atomic Claim" in isolation, but use the "Original Sentence" as the 
 
 Step 1: Check for Unverifiable
 Is the claim a personal narrative, a patient-specific experience, or an empathetic "bedside manner" statement? These claims cannot be verified by an external knowledge base.
-- General Examples: "I spoke with your doctor.", "You are experiencing pain.", "Your pain can be very tiring."
+- General Examples: "I spoke with your doctor.", "You are experiencing pain.", "Your pain can be very tiring.", "If you have any concerns, please don't hesitate to reach out to them."
 - If YES: Label as Unverifiable. The process stops here.
 - If NO: Proceed to Step 2.
 
@@ -170,7 +170,7 @@ Does the claim contain unresolved pronouns (he, she, it, your, their) or vague r
 - If NO: Proceed to Step 4.
 
 Step 4: Check for Hallucinated
-Does the claim add ANY new information (even a single word) that was not in the "Original Sentence"? Does it distort or contradict the original meaning?
+Does the claim add ANY new information (even a single word) that was not in the "Original Sentence"? Does the claim add ANY new information that was not mentioned by pronouns or vague references in the "Original Sentence"? Does it distort or contradict the "Original Sentence" meaning?
 - General Original: "Aspirin may help reduce pain."
 - General Hallucinated Example: "Aspirin, WHICH IS AN NSAID, may help reduce pain." (Adds "which is an NSAID").
 - If YES: Label as Hallucinated. The process stops here.
