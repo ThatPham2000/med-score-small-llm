@@ -170,9 +170,10 @@ Does the claim contain unresolved pronouns (he, she, it, your, their) or vague r
 - If NO: Proceed to Step 4.
 
 Step 4: Check for Hallucinated
-Does the claim add ANY new information (even a single word) that was not in the "Original Sentence"? Does the claim add ANY new information that was not mentioned by pronouns or vague references in the "Original Sentence"? Does it distort or contradict the "Original Sentence" meaning?
+Does the claim add any new medical information that is NOT present in the "Original Sentence" AND cannot be justified as a direct substitution for a pronoun/vague term from the "Context"? Does it distort or contradict the original meaning?
+- A claim is NOT a hallucination if it correctly replaces a pronoun (e.g., "it", "they", "your symptoms") with a specific entity from the "Context".
 - General Original: "Aspirin may help reduce pain."
-- General Hallucinated Example: "Aspirin, WHICH IS AN NSAID, may help reduce pain." (Adds "which is an NSAID").
+- General Hallucinated Example: "Aspirin, WHICH IS AN NSAID, may help reduce pain." (Adds "which is an NSAID", which is not a substitution from context).
 - If YES: Label as Hallucinated. The process stops here.
 - If NO: Proceed to Step 5.
 
@@ -286,7 +287,7 @@ Reasoning:
 Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone ("Anabolic steroids" correctly replaces "these substances"). Proceed.
-Step 4: Check for Hallucinated. Grounded in the original ("may have positive effects on bone health"). Proceed.
+Step 4: Check for Hallucinated. The claim is grounded. The term "Anabolic steroids" is a valid substitution for "these substances" from the "Context". It does not add new, un-grounded information. Proceed.
 Step 5: Check for Incomplete. Retains the critical modifier "may". Proceed.
 Step 6: Check for Redundant. The claim is atomic. The "Other Claims" list contains other "distinct atomic facts". This claim is not a duplicate (Condition 1) nor a composite (Condition 2). It is a different fact, just like Example 3 in the main instructions. It is NOT redundant. Proceed.
 Step 7: Assign Valid. The claim has passed all six checks.
