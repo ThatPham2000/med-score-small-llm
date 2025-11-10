@@ -198,8 +198,8 @@ Does the claim DROP a critical medical modifier (like 'may', 'rarely'), conditio
 
 Step 6: Check for Redundant
 (This step requires the "Other Claims" list). A claim is redundant ONLY if it meets one of these two specific conditions:
-1.  It is a "direct duplicate" or a "semantically identical rephrasing" of a claim in the "Other Claims" list.
-2.  It is a "composite claim" (e.g., "A and B") and its more atomic parts ("A", "B") are already present in the "Other Claims" list.
+Condition 1: It is a "direct duplicate" or a "semantically identical rephrasing" of a claim in the "Other Claims" list.
+Condition 2: It is a "composite claim" (e.g., "A and B") and its more atomic parts ("A", "B") are already present in the "Other Claims" list.
 CRITICAL RULE: If the "Atomic Claim" and the claims in "Other Claims" are all distinct, different atomic facts, they are NOT redundant. Do NOT misclassify two different facts as "rephrasings" just because they share a topic.
 - Example 1 (IS Redundant - Composite):
     - Other Claims List: ["Anabolic steroids carry significant risks.", "Anabolic steroids carry potential side effects."]
