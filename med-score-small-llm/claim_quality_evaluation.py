@@ -178,19 +178,23 @@ Does the claim add any new medical information that is NOT present in the "Origi
 - If NO: Proceed to Step 5.
 
 Step 5: Check for Incomplete
-Does the claim DROP a critical medical modifier (like 'may', 'rarely'), condition (like 'if you have X'), or nuance from the "Original Sentence," thereby changing its meaning?
-- CRITICAL RULE: This rule does NOT apply to valid decomposition. If an "Original Sentence" contains multiple distinct facts (e.g., "A causes B and C" or "A and B cause C"), a claim that correctly and completely extracts just one of those facts (e.g., "A causes C" or "B causes C") is NOT Incomplete. It is a valid atomic fact.
+Does the claim DROP a critical medical modifier (like 'may', 'rarely'), condition (like 'if you have X'), or nuance from the from within the core medical fact itself, thereby changing its meaning?
+- CRITICAL RULE 1 (Reporting Frames): This rule does NOT apply to the removal of reporting frames (e.g., "The doctor believes that...", "The study shows that..."). Stripping these frames is a correct part of structuring the claim (which is checked in Step 2) and does NOT make the core medical fact incomplete.
+- CRITICAL RULE 2 (Valid Decomposition): This rule does NOT apply to valid decomposition. If an "Original Sentence" contains multiple distinct facts (e.g., "A causes B and C" or "A and B cause C"), a claim that correctly and completely extracts just one of those facts (e.g., "A causes C" or "B causes C") is NOT Incomplete. It is a valid atomic fact.
 - General Incomplete Example 1 (Loses Modifier):
     - Original: "Anabolic steroids may have positive effects on muscle health."
-    - Claim: "Anabolic steroids have positive effects on muscle health." (Loses "may").
+    - Claim: "Anabolic steroids have positive effects on muscle health." (Loses "may" - this IS Incomplete).
 - General Incomplete Example 2 (Loses Condition):
     - Original: "Growth hormones should only be taken if there is a diagnosed deficiency."
-    - Claim: "Growth hormones should only be taken." (Loses "if there is a diagnosed deficiency").
+    - Claim: "Growth hormones should only be taken." (Loses "if there is a diagnosed deficiency" - this IS Incomplete).
 - General NOT Incomplete Example 3 (Valid Decomposition):
     - Original: "A causes B and C."
     - Claim: "A causes C." (This is a complete atomic fact, not an incomplete one).
+- General NOT Incomplete Example 4 (Frame Stripped):
+    - Original: "The doctor believes that A causes B."
+    - Claim: "A causes B." (This is a correctly structured, complete fact, not an incomplete one).
 - If YES (like Examples 1 & 2): Label as Incomplete. The process stops here.
-- If NO (like Example 3): Proceed to Step 6.
+- If NO (like Example 3 & 4): Proceed to Step 6.
 
 Step 6: Check for Redundant
 (This step requires the "Other Claims" list). A claim is redundant ONLY if it meets one of these two specific conditions:
@@ -269,7 +273,7 @@ Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative sentence. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
 Step 4: Check for Hallucinated. The claim does not add new information. Proceed.
-Step 5: Check for Incomplete. The original sentence contains the critical modifier "may". The claim omits "may", changing the meaning from a possibility to a definite fact. This matches General Incomplete Example 1. The process stops here.
+Step 5: Check for Incomplete. The claim drops the critical modifier "may" from within the core medical fact. This is not a reporting frame. This matches General Incomplete Example 1. The process stops here.
 Classification: Incomplete
 
 6. Example: Redundant
@@ -294,7 +298,7 @@ Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone ("Anabolic steroids" correctly replaces "these substances"). Proceed.
 Step 4: Check for Hallucinated. The claim is grounded. The term "Anabolic steroids" is a valid substitution for "these substances" from the "Context". It does not add new, un-grounded information. Proceed.
-Step 5: Check for Incomplete. The claim retains the critical modifier "may". It is a validly decomposed atomic fact (like "General NOT Incomplete Example 3") from a larger sentence, not an incomplete one. Proceed.
+Step 5: Check for Incomplete. The claim retains the critical modifier "may". It is a validly decomposed atomic fact (like "CRITICAL RULE 2") from a larger sentence, not an incomplete one. Proceed.
 Step 6: Check for Redundant. The claim is atomic. The "Other Claims" list contains other "distinct atomic facts". This claim is not a duplicate (Condition 1) nor a composite (Condition 2). It is a different fact, just like Example 3 in the main instructions. It is NOT redundant. Proceed.
 Step 7: Assign Valid. The claim has passed all six checks.
 Classification: Valid
