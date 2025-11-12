@@ -159,8 +159,8 @@ Is the claim a personal narrative, a patient-specific experience, or an empathet
 - If NO: Proceed to Step 2.
 
 Step 2: Check for Incorrectly structured
-Is the claim a question, a command, or does it incorrectly include the reporting frame (e.g., "The doctor said...")?
-- General Examples: "Take ibuprofen for your pain.", "Did you take the medication?", "The study shows that aspirin is effective."
+Is the claim a question, a command, or does it incorrectly include the reporting frame (e.g., "The doctor said...")? Or is the "Atomic Claim" only contain "Facts:" without any medical claims?
+- General Examples: "Take ibuprofen for your pain.", "Did you take the medication?", "The study shows that aspirin is effective.", "Facts:".
 - If YES: Label as Incorrectly structured. The process stops here.
 - If NO: Proceed to Step 3.
 
