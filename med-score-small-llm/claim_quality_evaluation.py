@@ -198,40 +198,33 @@ Does the claim DROP a critical medical modifier (like 'may', 'rarely'), conditio
 - If NO (like Example 3 & 4): Proceed to Step 6.
 
 Step 6: Check for Redundant
-This step requires the "Other Claims" list. Check these conditions in order.
+This step requires the "Other Claims" list. Check these conditions IN ORDER.
 Condition 1: Is it a Composite Claim?
 Is the "Atomic Claim" a "composite claim" (e.g., "A and B") where its more atomic parts ("A", "B") are already present in the "Other Claims" list?
 - General Example 1 (IS Redundant):
-    - Other Claims List: ["Anabolic steroids carry significant risks.", "Anabolic steroids carry potential side effects."]
-    - Claim to Evaluate: "Anabolic steroids carry significant risks and potential side effects."
-    - Judgment: This meets Condition 1. It is a composite of claims already in the list.
+    - Claim to Evaluate: "A is B and C"
+    - Other Claims List: ["A is B.", "A is C."]
+    - Judgment: This claim meets Condition 1. It is a composite of claims already in the list.
 - If YES: Label as Redundant. The process stops here.
 - If NO: Proceed to check Condition 2.
 
 Condition 2: Is it a Duplicate or Rephrasing?
-Is the "Atomic Claim" a "direct duplicate" or a "semantically identical rephrasing" of any claim in the "Other Claims" list?
+Is the "Atomic Claim" a "direct duplicate" or "semantically identical rephrasing" of any claim in the "Other Claims" list?
 - If NO: The claim is not redundant. Proceed to Step 7.
 - If YES: You must perform a "completeness check" to decide the label.
     - 1. Find all claims in "Other Claims" that are duplicates/rephrasings of the "Atomic Claim".
-    - 2. Compare the "Atomic Claim" to this list of duplicates.
-    - 3. If the "Atomic Claim" is "more complete" (i.e., it contains more accurate detail or nuance) than ALL the other duplicate claims: Label as Valid. The process stops here.
-    - 4. Otherwise, Label as Redundant. The process stops here.
+    - 2. If the "Atomic Claim" is "more complete" (i.e., it contains more accurate detail or nuance) than ALL the other duplicate claims: Label as Valid. The process stops here.
+    - 3. Otherwise, Label as Redundant. The process stops here.
     
 CRITICAL RULE: If the "Atomic Claim" and the claims in "Other Claims" are all distinct, different atomic facts, they are NOT redundant. Do NOT misclassify two different facts as "rephrasings" just because they share a topic.
-- Example 1 (IS Redundant - Composite):
-    - Other Claims List: ["Anabolic steroids carry significant risks.", "Anabolic steroids carry potential side effects."]
-    - Claim to Evaluate: "Anabolic steroids carry significant risks and potential side effects."
-    - Judgment: This claim is REDUNDANT because it meets Condition 1 (it is a composite of claims already in the list).
-- Example 2 (IS NOT Redundant - Atomic Part):
-    - Other Claims List: ["Anabolic steroids carry significant risks and potential side effects.", "Anabolic steroids carry potential side effects."]
-    - Claim to Evaluate: "Anabolic steroids carry significant risks."
+- Example (IS NOT Redundant - Atomic Part):
+    - Claim to Evaluate: "A is B."
+    - Other Claims List: ["A is B and C", "A is C."]
     - Judgment: This claim is NOT REDUNDANT. It is an atomic fact, not a composite. (It does not meet Condition 1 or 2).
-- Example 3 (IS NOT Redundant - Distinct Facts):
+- Example (IS NOT Redundant - Distinct Facts):
     - Other Claims List: ["A is likely a B."]
     - Claim to Evaluate: "B is a common occurrence."
-    - Judgment: This claim is NOT redundant. It is a completely different, distinct atomic fact. One fact is a diagnosis, the other is a definition. It does not meet Condition 1 (it's not a composite) or Condition 2 (it's not a rephrasing).
-- If YES (like Example 1): Label as Redundant. The process stops here.
-- If NO (like Example 2, Example 3): Proceed to Step 7.
+    - Judgment: Although "Atomic Claim" and "Other Claims" share the same topic, this claim is NOT redundant. It is a completely different, distinct atomic fact. One fact is a diagnosis, the other is a definition. It does not meet Condition 1 (it's not a composite) or Condition 2 (it's not a rephrasing).
 
 Step 7: Assign Valid
 If the claim has passed all six previous checks, it is a Valid atomic fact. It is standalone, declarative, grounded, and complete.
@@ -303,7 +296,8 @@ Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
 Step 4: Check for Hallucinated. Grounded in the original. Proceed.
 Step 5: Check for Incomplete. Retains all modifiers. Proceed.
-Step 6: Check for Redundant. The "Other Claims" list includes "Anabolic steroids carry significant risks." and "Anabolic steroids carry potential side effects." The claim being evaluated is a composite of these two other, more atomic claims. This matches Condition 2 from the instructions. The process stops here.
+Step 6: Check for Redundant. 
+Check Condition 1 (Composite): The claim being evaluated is a composite of 2 items in "Other Claims" including "Anabolic steroids carry significant risks." and "Anabolic steroids carry potential side effects.". This matches Condition 1. The process stops here.
 Classification: Redundant
 ---
 7. Example: Valid
@@ -316,7 +310,9 @@ Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone ("Anabolic steroids" correctly replaces "these substances"). Proceed.
 Step 4: Check for Hallucinated. The claim is grounded. The term "Anabolic steroids" is a valid substitution for "these substances" from the "Context". It does not add new, un-grounded information. Proceed.
 Step 5: Check for Incomplete. The claim retains the critical modifier "may". It is a validly decomposed atomic fact (like "CRITICAL RULE 2") from a larger sentence, not an incomplete one. Proceed.
-Step 6: Check for Redundant. The claim is atomic. The "Other Claims" list contains other "distinct atomic facts". This claim is not a duplicate (Condition 1) nor a composite (Condition 2). It is a different fact, just like Example 3 in the main instructions. It is NOT redundant. Proceed.
+Step 6: Check for Redundant. 
+Check Condition 1 (Composite): The claim is atomic, not composite. The "Other Claims" list contains other "distinct atomic facts". Proceed.
+Check Condition 2 (Duplicate): The claim is not a duplicate or rephrasing of any other claim in the list (the other claims are distinct medical facts about muscle health, risks, and side effects). The claim is not redundant. Proceed.
 Step 7: Assign Valid. The claim has passed all six checks.
 Classification: Valid
 ---
