@@ -252,6 +252,14 @@ Reasoning:
 Step 1: Check for Unverifiable. The claim is not a personal narrative. Proceed.
 Step 2: Check for Incorrectly structured. The claim incorrectly includes the reporting frame ("The doctor noted that..."). This matches. The process stops here.
 Classification: Incorrectly structured
+
+Original Sentence: "Fortunately, there are..."
+Atomic Claim to Evaluate: "Facts:"
+Other Claims: []
+Reasoning:
+Step 1: Check for Unverifiable. The claim is not a personal narrative. Proceed.
+Step 2: Check for Incorrectly structured. The claim only contains "Facts:" without any medical claims. This matches. The process stops here.
+Classification: Incorrectly structured
 ---
 3. Example: Context-dependent
 Original Sentence: "The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
@@ -299,6 +307,21 @@ Step 5: Check for Incomplete. Retains all modifiers. Proceed.
 Step 6: Check for Redundant. 
 Check Condition 1 (Composite): The claim being evaluated is a composite of 2 items in "Other Claims" including "Anabolic steroids carry significant risks." and "Anabolic steroids carry potential side effects.". This matches Condition 1. The process stops here.
 Classification: Redundant
+
+Original Sentence: "The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
+Atomic Claim to Evaluate: "Anabolic steroids may have positive effects on muscle health."
+Other Claims: ["Anabolic steroids may have positive effects on muscle and bone health.", "Anabolic steroids may have positive effects on bone health.", "Anabolic steroids carry significant risks.", "Anabolic steroids carry potential side effects."]
+Reasoning:
+Step 1: Check for Unverifiable. Not a narrative. Proceed.
+Step 2: Check for Incorrectly structured. Declarative. Proceed.
+Step 3: Check for Context-dependent. Standalone. Proceed.
+Step 4: Check for Hallucinated. Grounded in the original. Proceed.
+Step 5: Check for Incomplete. Retains all modifiers. Proceed.
+Step 6: Check for Redundant. 
+Check Condition 1 (Composite): The claim is atomic, not composite.
+Check Condition 2 (Duplicate): The claim is one fact of "Anabolic steroids may have positive effects on muscle and bone health." in the "Other Claims" list, but it is atomic and enough medical detail. Moreover, "Anabolic steroids may have positive effects on muscle and bone health." in the "Other Claims" list is composite, not atomic and it is Redundant when evaluating it. Therefore, the claim is not a duplicate or rephrasing of any other claim in the list. The claim is not redundant. Proceed.
+Step 7: Assign Valid. The claim has passed all six checks.
+Classification: Valid
 ---
 7. Example: Valid
 Original Sentence: "The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
