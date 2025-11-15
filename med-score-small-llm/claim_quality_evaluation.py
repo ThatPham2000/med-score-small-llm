@@ -171,12 +171,26 @@ Does the claim contain unresolved pronouns (he, she, it, your, their) or vague r
 - If NO: Proceed to Step 4.
 
 Step 4: Check for Hallucinated
-Does the claim add any new medical information that is NOT present in the "Original Sentence" AND cannot be justified as a direct substitution for a pronoun/vague term from the "Context"? Does it distort or contradict the original meaning?
-- A claim is NOT a hallucination if it correctly replaces a pronoun (e.g., "it", "they", "your symptoms") with a specific entity from the "Context".
-- General Original: "Aspirin may help reduce pain."
-- General Hallucinated Example: "Aspirin, WHICH IS AN NSAID, may help reduce pain." (Adds "which is an NSAID", which is not a substitution from context).
-- If YES: Label as Hallucinated. The process stops here.
-- If NO: Proceed to Step 5.
+First, check if the "Atomic Claim" adds new medical information, distorts, or contradicts the "Original Sentence".
+- If NO: The claim is grounded. Proceed to Step 5.
+- If YES: The claim has information not in the "Original Sentence". You must now perform a "Context Check" to see if this is a valid substitution or a hallucination.
+    - "Context Check": Is the new/changed information a direct and justifiable substitution for a pronoun (e.g., *it, they, your*) or a vague term (e.g., *the symptoms, the condition*) in the "Context"?
+        - If YES (it's a valid substitution): The claim is NOT a hallucination. Proceed to Step 5.
+        - If NO (it's new, unjustified info): The claim adds information that cannot be justified by either the "Original Sentence" or the "Context". Label as **Hallucinated**. The process stops here.
+- General Hallucinated Example (New Info):
+    - Context: "Aspirin may help reduce pain and inflammation."
+    - Original Sentence: "Aspirin may help reduce pain."
+    - Atomic Claim: "Aspirin, WHICH IS AN NSAID, may help reduce pain."
+    - Reasoning: The phrase "which is an NSAID" is new information not in the "Original Sentence". In "Context Check", it is not a direct and justifiable substitution for a pronoun or a vague term in the "Context". This IS a hallucination.
+- General Hallucinated Example (Distortion):
+    - Original: "Aspirin may help reduce pain."
+    - Claim: "Aspirin may help eliminate pain."
+    - Reasoning: "Eliminate" distorts the meaning of "reduce". This IS a hallucination.
+- General NOT Hallucinated Example (Valid Substitution):
+    - Context: "...We were discussing Aspirin. It may help reduce pain..."
+    - Original Sentence: "It may help reduce pain."
+    - Claim: "Aspirin may help reduce pain."
+    - Reasoning: The claim adds "Aspirin," which is not in the "Original Sentence." However, the "Context Check" confirms "Aspirin" is a valid substitution for the pronoun "It." This is NOT a hallucination.
 
 Step 5: Check for Incomplete
 Does the claim DROP a critical medical modifier (like 'may', 'rarely'), condition (like 'if you have X'), or nuance from the from within the core medical fact itself, thereby changing its meaning?
@@ -290,7 +304,7 @@ Reasoning:
 Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative sentence. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
-Step 4: Check for Hallucinated. The claim does not add new information. Proceed.
+Step 4: Check for Hallucinated. The claim does not add new information. Grounded in the original. Proceed.
 Step 5: Check for Incomplete. The claim drops the critical modifier "may" from within the core medical fact. This is not a reporting frame. This matches General Incomplete Example 1. The process stops here.
 Classification: Incomplete
 
@@ -302,7 +316,7 @@ Reasoning:
 Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
-Step 4: Check for Hallucinated. Grounded in the original. Proceed.
+Step 4: Check for Hallucinated. The claim does not add new information. Grounded in the original. Proceed.
 Step 5: Check for Incomplete. Retains all modifiers. Proceed.
 Step 6: Check for Redundant. 
 Check Condition 1 (Composite): The claim being evaluated is a composite of 2 items in "Other Claims" including "Anabolic steroids carry significant risks." and "Anabolic steroids carry potential side effects.". This matches Condition 1. The process stops here.
@@ -315,7 +329,7 @@ Reasoning:
 Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
-Step 4: Check for Hallucinated. Grounded in the original. Proceed.
+Step 4: Check for Hallucinated. The claim does not add new information. Grounded in the original. Proceed.
 Step 5: Check for Incomplete. Retains all modifiers. Proceed.
 Step 6: Check for Redundant. 
 Check Condition 1 (Composite): The claim is atomic, not composite.
