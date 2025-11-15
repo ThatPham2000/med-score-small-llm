@@ -181,7 +181,7 @@ First, check if the "Atomic Claim" adds new medical information, distorts, or co
     - Context: "Aspirin may help reduce pain and inflammation."
     - Original Sentence: "Aspirin may help reduce pain."
     - Atomic Claim: "Aspirin, WHICH IS AN NSAID, may help reduce pain."
-    - Reasoning: The phrase "which is an NSAID" is new information not in the "Original Sentence". In "Context Check", it is not a direct and justifiable substitution for a pronoun or a vague term in the "Context". This IS a hallucination.
+    - Reasoning: The phrase "which is an NSAID" is new information not in the "Original Sentence". You do the "Context Check", it is not a direct and justifiable substitution for a pronoun or a vague term in the "Context". This IS a hallucination.
 - General Hallucinated Example (Distortion):
     - Original: "Aspirin may help reduce pain."
     - Claim: "Aspirin may help eliminate pain."
