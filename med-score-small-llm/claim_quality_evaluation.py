@@ -176,6 +176,7 @@ First, check if the "Atomic Claim" adds new medical information, distorts, or co
 - If YES: The claim has information not in the "Original Sentence". You must now perform a "Context Check" to see if this is a valid substitution or a hallucination.
     - "Context Check": Is the new/changed information a direct and justifiable substitution for a pronoun (e.g., *it, they, your*) or a vague term (e.g., *the symptoms, the condition*) in the "Context"?
         - If YES (it's a valid substitution): The claim is NOT a hallucination. Proceed to Step 5.
+            Note: The "Atomic Claim" considers Hallucinated if it is correct in "Context" but not in "Original Sentence".
         - If NO (it's new, unjustified info): The claim adds information that cannot be justified by either the "Original Sentence" or the "Context". Label as **Hallucinated**. The process stops here.
 - General Hallucinated Example (New Info):
     - Context: "Aspirin may help reduce pain and inflammation."
@@ -191,6 +192,11 @@ First, check if the "Atomic Claim" adds new medical information, distorts, or co
     - Original Sentence: "It may help reduce pain."
     - Claim: "Aspirin may help reduce pain."
     - Reasoning: The claim adds "Aspirin," which is not in the "Original Sentence." However, the "Context Check" confirms "Aspirin" is a valid substitution for the pronoun "It." This is NOT a hallucination.
+- General Hallucinated Example (Correct in Context but not in Original Sentence):
+    - Context: "The doctor mentioned that A is B. B may help reduce pain."
+    - Original Sentence: "B may help reduce pain."
+    - Claim: "A is B."
+    - Reasoning: The claim "A is B" is correct in the "Context" but not present in the "Original Sentence." This IS a hallucination.
 
 Step 5: Check for Incomplete
 Does the claim DROP a critical medical modifier (like 'may', 'rarely'), condition (like 'if you have X'), or nuance from the from within the core medical fact itself, thereby changing its meaning?
