@@ -291,7 +291,7 @@ if __name__ == '__main__':
     decompose_end_time = time.time()
     print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
 
-    decompositions=decompositions[0:10] # todo
+    # decompositions=decompositions[0:10] # todo: rm it
     # Evaluate claim quality
     time_claim_quality_start = time.time()
     # Add context to each decomposition
