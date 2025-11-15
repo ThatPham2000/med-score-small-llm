@@ -170,12 +170,31 @@ Does the claim contain unresolved pronouns (he, she, it, your, their) or vague r
 - If YES: Label as Context-dependent. The process stops here.
 - If NO: Proceed to Step 4.
 
-Step 4: Check for Hallucinated
+Step 4: Check for Incomplete
+Does the claim DROP a critical medical modifier (like 'may', 'rarely'), condition (like 'if you have X'), or nuance from the from within the core medical fact itself, thereby changing its meaning?
+- CRITICAL RULE 1 (Reporting Frames): This rule does NOT apply to the removal of reporting frames (e.g., "The doctor believes that...", "The study shows that..."). Stripping these frames is a correct part of structuring the claim (which is checked in Step 2) and does NOT make the core medical fact incomplete.
+- CRITICAL RULE 2 (Valid Decomposition): This rule does NOT apply to valid decomposition. If an "Original Sentence" contains multiple distinct facts (e.g., "A causes B and C" or "A and B cause C"), a claim that correctly and completely extracts just one of those facts (e.g., "A causes C" or "B causes C") is NOT Incomplete. It is a valid atomic fact.
+- General Incomplete Example 1 (Loses Modifier):
+    - Original: "Anabolic steroids may have positive effects on muscle health."
+    - Claim: "Anabolic steroids have positive effects on muscle health." (Loses "may" - this IS Incomplete).
+- General Incomplete Example 2 (Loses Condition):
+    - Original: "Growth hormones should only be taken if there is a diagnosed deficiency."
+    - Claim: "Growth hormones should only be taken." (Loses "if there is a diagnosed deficiency" - this IS Incomplete).
+- General NOT Incomplete Example 3 (Valid Decomposition):
+    - Original: "A causes B and C."
+    - Claim: "A causes C." (This is a complete atomic fact, not an incomplete one).
+- General NOT Incomplete Example 4 (Frame Stripped):
+    - Original: "The doctor believes that A causes B."
+    - Claim: "A causes B." (This is a correctly structured, complete fact, not an incomplete one).
+- If YES (like Examples 1 & 2): Label as Incomplete. The process stops here.
+- If NO (like Example 3 & 4): Proceed to Step 5.
+
+Step 5: Check for Hallucinated
 First, check if the "Atomic Claim" adds new medical information, distorts, or contradicts the "Original Sentence".
-- If NO: The claim is grounded. Proceed to Step 5.
+- If NO: The claim is grounded. Proceed to Step 6.
 - If YES: The claim has information not in the "Original Sentence". You must now perform a "Context Check" to see if this is a valid substitution or a hallucination.
     - "Context Check": Is the new/changed information a direct and justifiable substitution for a pronoun (e.g., *it, they, your*) or a vague term (e.g., *the symptoms, the condition*) in the "Context"?
-        - If YES (it's a valid substitution): The claim is NOT a hallucination. Proceed to Step 5.
+        - If YES (it's a valid substitution): The claim is NOT a hallucination. Proceed to Step 6.
             Note: The "Atomic Claim" considers Hallucinated if it is correct in "Context" but not in "Original Sentence".
         - If NO (it's new, unjustified info): The claim adds information that cannot be justified by either the "Original Sentence" or the "Context". Label as **Hallucinated**. The process stops here.
 - General Hallucinated Example (New Info):
@@ -197,25 +216,6 @@ First, check if the "Atomic Claim" adds new medical information, distorts, or co
     - Original Sentence: "B may help reduce pain."
     - Claim: "A is B."
     - Reasoning: The claim "A is B" is correct in the "Context" but not present in the "Original Sentence." This IS a hallucination.
-
-Step 5: Check for Incomplete
-Does the claim DROP a critical medical modifier (like 'may', 'rarely'), condition (like 'if you have X'), or nuance from the from within the core medical fact itself, thereby changing its meaning?
-- CRITICAL RULE 1 (Reporting Frames): This rule does NOT apply to the removal of reporting frames (e.g., "The doctor believes that...", "The study shows that..."). Stripping these frames is a correct part of structuring the claim (which is checked in Step 2) and does NOT make the core medical fact incomplete.
-- CRITICAL RULE 2 (Valid Decomposition): This rule does NOT apply to valid decomposition. If an "Original Sentence" contains multiple distinct facts (e.g., "A causes B and C" or "A and B cause C"), a claim that correctly and completely extracts just one of those facts (e.g., "A causes C" or "B causes C") is NOT Incomplete. It is a valid atomic fact.
-- General Incomplete Example 1 (Loses Modifier):
-    - Original: "Anabolic steroids may have positive effects on muscle health."
-    - Claim: "Anabolic steroids have positive effects on muscle health." (Loses "may" - this IS Incomplete).
-- General Incomplete Example 2 (Loses Condition):
-    - Original: "Growth hormones should only be taken if there is a diagnosed deficiency."
-    - Claim: "Growth hormones should only be taken." (Loses "if there is a diagnosed deficiency" - this IS Incomplete).
-- General NOT Incomplete Example 3 (Valid Decomposition):
-    - Original: "A causes B and C."
-    - Claim: "A causes C." (This is a complete atomic fact, not an incomplete one).
-- General NOT Incomplete Example 4 (Frame Stripped):
-    - Original: "The doctor believes that A causes B."
-    - Claim: "A causes B." (This is a correctly structured, complete fact, not an incomplete one).
-- If YES (like Examples 1 & 2): Label as Incomplete. The process stops here.
-- If NO (like Example 3 & 4): Proceed to Step 6.
 
 Step 6: Check for Redundant
 This step requires the "Other Claims" list. Check these conditions IN ORDER.
@@ -291,18 +291,7 @@ Step 2: Check for Incorrectly structured. The claim is a declarative sentence. P
 Step 3: Check for Context-dependent. The claim relies on the unresolved pronoun "They." Without the context, the claim is not standalone. This matches. The process stops here.
 Classification: Context-dependent
 ---
-4. Example: Hallucinated
-Original Sentence: "The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
-Atomic Claim to Evaluate: "Anabolic steroids may have negative effects on muscle health."
-Other Claims: []
-Reasoning:
-Step 1: Check for Unverifiable. Not a narrative. Proceed.
-Step 2: Check for Incorrectly structured. Declarative sentence. Proceed.
-Step 3: Check for Context-dependent. Standalone. Proceed.
-Step 4: Check for Hallucinated. The original sentence uses "positive effect". The claim distorts this to "negative effect". This is a distortion of the original meaning. This matches. The process stops here.
-Classification: Hallucinated
----
-5. Example: Incomplete
+4. Example: Incomplete
 Original Sentence: "The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
 Atomic Claim to Evaluate: "Anabolic steroids have positive effects on muscle health."
 Other Claims: []
@@ -310,10 +299,21 @@ Reasoning:
 Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative sentence. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
-Step 4: Check for Hallucinated. The claim does not add new information. Grounded in the original. Proceed.
-Step 5: Check for Incomplete. The claim drops the critical modifier "may" from within the core medical fact. This is not a reporting frame. This matches General Incomplete Example 1. The process stops here.
+Step 4: Check for Incomplete. The claim drops the critical modifier "may" from within the core medical fact. This is not a reporting frame. This matches General Incomplete Example 1. The process stops here.
 Classification: Incomplete
-
+---
+5. Example: Hallucinated
+Original Sentence: "The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
+Atomic Claim to Evaluate: "Anabolic steroids may have negative effects on muscle health."
+Other Claims: []
+Reasoning:
+Step 1: Check for Unverifiable. Not a narrative. Proceed.
+Step 2: Check for Incorrectly structured. Declarative sentence. Proceed.
+Step 3: Check for Context-dependent. Standalone. Proceed.
+Step 4: Check for Incomplete. Retains all modifiers. Proceed.
+Step 5: Check for Hallucinated. The original sentence uses "positive effect". The claim distorts this to "negative effect". This is a distortion of the original meaning. This matches. The process stops here.
+Classification: Hallucinated
+---
 6. Example: Redundant
 Original Sentence: "The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
 Atomic Claim to Evaluate: "Anabolic steroids carry significant risks and potential side effects."
@@ -322,8 +322,8 @@ Reasoning:
 Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
-Step 4: Check for Hallucinated. The claim does not add new information. Grounded in the original. Proceed.
-Step 5: Check for Incomplete. Retains all modifiers. Proceed.
+Step 4: Check for Incomplete. Retains all modifiers. Proceed.
+Step 5: Check for Hallucinated. The claim does not add new information. Grounded in the original. Proceed.
 Step 6: Check for Redundant. 
 Check Condition 1 (Composite): The claim being evaluated is a composite of 2 items in "Other Claims" including "Anabolic steroids carry significant risks." and "Anabolic steroids carry potential side effects.". This matches Condition 1. The process stops here.
 Classification: Redundant
@@ -335,8 +335,8 @@ Reasoning:
 Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone. Proceed.
-Step 4: Check for Hallucinated. The claim does not add new information. Grounded in the original. Proceed.
-Step 5: Check for Incomplete. Retains all modifiers. Proceed.
+Step 4: Check for Incomplete. Retains all modifiers. Proceed.
+Step 5: Check for Hallucinated. The claim does not add new information. Grounded in the original. Proceed.
 Step 6: Check for Redundant. 
 Check Condition 1 (Composite): The claim is atomic, not composite.
 Check Condition 2 (Duplicate): The claim is one fact of "Anabolic steroids may have positive effects on muscle and bone health." in the "Other Claims" list, but it is atomic and enough medical detail. Moreover, "Anabolic steroids may have positive effects on muscle and bone health." in the "Other Claims" list is composite, not atomic and it is Redundant when evaluating it. Therefore, the claim is not a duplicate or rephrasing of any other claim in the list. The claim is not redundant. Proceed.
@@ -351,8 +351,8 @@ Reasoning:
 Step 1: Check for Unverifiable. Not a narrative. Proceed.
 Step 2: Check for Incorrectly structured. Declarative. Proceed.
 Step 3: Check for Context-dependent. Standalone ("Anabolic steroids" correctly replaces "these substances"). Proceed.
-Step 4: Check for Hallucinated. The claim is grounded. The term "Anabolic steroids" is a valid substitution for "these substances" from the "Context". It does not add new, un-grounded information. Proceed.
-Step 5: Check for Incomplete. The claim retains the critical modifier "may". It is a validly decomposed atomic fact (like "CRITICAL RULE 2") from a larger sentence, not an incomplete one. Proceed.
+Step 4: Check for Incomplete. The claim retains the critical modifier "may". It is a validly decomposed atomic fact (like "CRITICAL RULE 2") from a larger sentence, not an incomplete one. Proceed.
+Step 5: Check for Hallucinated. The claim is grounded. The term "Anabolic steroids" is a valid substitution for "these substances" from the "Context". It does not add new, un-grounded information. Proceed.
 Step 6: Check for Redundant. 
 Check Condition 1 (Composite): The claim is atomic, not composite. The "Other Claims" list contains other "distinct atomic facts". Proceed.
 Check Condition 2 (Duplicate): The claim is not a duplicate or rephrasing of any other claim in the list (the other claims are distinct medical facts about muscle health, risks, and side effects). The claim is not redundant. Proceed.
