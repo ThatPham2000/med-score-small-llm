@@ -171,9 +171,10 @@ Does the claim contain unresolved pronouns (he, she, it, your, their) or vague r
 - If NO: Proceed to Step 4.
 
 Step 4: Check for Incomplete
-Does the claim DROP a critical medical modifier (like 'may', 'rarely'), condition (like 'if you have X'), or nuance from the from within the core medical fact itself, thereby changing its meaning?
+Does the claim DROP a critical medical modifier (like 'may', 'rarely'), condition (like 'if you have X')?
 - CRITICAL RULE 1 (Reporting Frames): This rule does NOT apply to the removal of reporting frames (e.g., "The doctor believes that...", "The study shows that..."). Stripping these frames is a correct part of structuring the claim (which is checked in Step 2) and does NOT make the core medical fact incomplete.
 - CRITICAL RULE 2 (Valid Decomposition): This rule does NOT apply to valid decomposition. If an "Original Sentence" contains multiple distinct facts (e.g., "A causes B and C" or "A and B cause C"), a claim that correctly and completely extracts just one of those facts (e.g., "A causes C" or "B causes C") is NOT Incomplete. It is a valid atomic fact.
+- CRITICAL RULE 3 (Modifiers and Conditions):  ONLY focus on DROPPING critical medical modifier (like 'may', 'rarely'), condition (like 'if you have X'). If the claim changes the "Original Sentence" meaning in any other way (e.g., distorts, adds new info), that is checked in Step 5 (Hallucinated).
 - General Incomplete Example 1 (Loses Modifier):
     - Original: "Anabolic steroids may have positive effects on muscle health."
     - Claim: "Anabolic steroids have positive effects on muscle health." (Loses "may" - this IS Incomplete).
@@ -186,8 +187,11 @@ Does the claim DROP a critical medical modifier (like 'may', 'rarely'), conditio
 - General NOT Incomplete Example 4 (Frame Stripped):
     - Original: "The doctor believes that A causes B."
     - Claim: "A causes B." (This is a correctly structured, complete fact, not an incomplete one).
+- General Example 5: (Hallucinated, not Incomplete)
+    - Original: "10 days and a half may not be sufficient."
+    - Claim: "10 days may not be sufficient." (This is NOT Incomplete - it is Hallucinated. Although the modifier "may" is retained, but the meaning is distorted by changing "10 days and a half" to "10 days". This is checked in Step 5).
 - If YES (like Examples 1 & 2): Label as Incomplete. The process stops here.
-- If NO (like Example 3 & 4): Proceed to Step 5.
+- If NO (like Example 3 & 4 & 5): Proceed to Step 5.
 
 Step 5: Check for Hallucinated
 First, check if the "Atomic Claim" adds new medical information, distorts, or contradicts the "Original Sentence".
