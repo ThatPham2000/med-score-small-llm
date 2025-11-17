@@ -308,7 +308,11 @@ if __name__ == '__main__':
         writer.write_all(claim_quality_decompositions)
     time_claim_quality_end = time.time()
     print(f"Claim quality evaluation time: {time_claim_quality_end - time_claim_quality_start:.2f} seconds")
-    exit(0) # todo
+
+    if args.evaluate_claim_quality:
+        print(f"Claim quality evaluation completed. Results saved to {claim_quality_output_file}")
+        exit(0)
+
     verification_start_time = time.time()
     # Process verification
     print(f"Running verification with {args.verification_mode} mode...")
