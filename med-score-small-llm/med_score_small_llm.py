@@ -237,7 +237,7 @@ if __name__ == '__main__':
         dataset = [item for item in reader.iter()]
 
     # use 100 record from dataset[100:200]
-    # dataset = dataset[100:200] # todo: uncomment it
+    dataset = dataset[100:200]
     print(f"len dataset: {len(dataset)}")
 
     # Handle provided evidence for 'provided' verification mode
@@ -292,7 +292,6 @@ if __name__ == '__main__':
     print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
 
     if args.evaluate_claim_quality:
-        # decompositions=decompositions[0:10] # todo: rm it
         # Evaluate claim quality
         time_claim_quality_start = time.time()
         # Add context to each decomposition
