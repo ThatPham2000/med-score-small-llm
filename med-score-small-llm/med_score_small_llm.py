@@ -237,7 +237,7 @@ if __name__ == '__main__':
         dataset = [item for item in reader.iter()]
 
     # use 100 record from dataset[100:200]
-    dataset = dataset[100:200]
+    # dataset = dataset[100:200] # todo: uncomment it
     print(f"len dataset: {len(dataset)}")
 
     # Handle provided evidence for 'provided' verification mode
@@ -291,25 +291,25 @@ if __name__ == '__main__':
     decompose_end_time = time.time()
     print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
 
-    # decompositions=decompositions[0:10] # todo: rm it
-    # Evaluate claim quality
-    time_claim_quality_start = time.time()
-    # Add context to each decomposition
-    decompositions_with_context = []
-    for item in decompositions:
-        for data_item in dataset:
-            if data_item["id"] == item["id"]:
-                item["context"] = data_item["response"]
-                break
-        decompositions_with_context.append(item)
-    claim_quality_decompositions = scorer.evaluate_claim_quality(decompositions_with_context)
-    claim_quality_output_file = os.path.join(args.output_dir, f"{mode_prefix}_claim_quality_evaluations.jsonl")
-    with jsonlines.open(claim_quality_output_file, 'w') as writer:
-        writer.write_all(claim_quality_decompositions)
-    time_claim_quality_end = time.time()
-    print(f"Claim quality evaluation time: {time_claim_quality_end - time_claim_quality_start:.2f} seconds")
-
     if args.evaluate_claim_quality:
+        # decompositions=decompositions[0:10] # todo: rm it
+        # Evaluate claim quality
+        time_claim_quality_start = time.time()
+        # Add context to each decomposition
+        decompositions_with_context = []
+        for item in decompositions:
+            for data_item in dataset:
+                if data_item["id"] == item["id"]:
+                    item["context"] = data_item["response"]
+                    break
+            decompositions_with_context.append(item)
+        claim_quality_decompositions = scorer.evaluate_claim_quality(decompositions_with_context)
+        claim_quality_output_file = os.path.join(args.output_dir, f"{mode_prefix}__norm_claim_quality_evaluations.jsonl")
+        with jsonlines.open(claim_quality_output_file, 'w') as writer:
+            writer.write_all(claim_quality_decompositions)
+        time_claim_quality_end = time.time()
+        print(f"Claim quality evaluation time: {time_claim_quality_end - time_claim_quality_start:.2f} seconds")
+
         print(f"Claim quality evaluation completed. Results saved to {claim_quality_output_file}")
         exit(0)
 
