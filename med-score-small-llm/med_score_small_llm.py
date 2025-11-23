@@ -304,7 +304,7 @@ if __name__ == '__main__':
                     break
             decompositions_with_context.append(item)
         claim_quality_decompositions = scorer.evaluate_claim_quality(decompositions_with_context)
-        claim_quality_output_file = os.path.join(args.output_dir, f"{mode_prefix}__norm_claim_quality_evaluations.jsonl")
+        claim_quality_output_file = os.path.join(args.output_dir, f"{mode_prefix}_claim_quality_evaluations.jsonl")
         with jsonlines.open(claim_quality_output_file, 'w') as writer:
             writer.write_all(claim_quality_decompositions)
         time_claim_quality_end = time.time()
