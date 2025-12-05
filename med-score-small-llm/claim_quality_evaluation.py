@@ -19,7 +19,7 @@ class ClaimQualityEvaluation(object):
             batch_size: int = 32,
     ):
         self.llm = llm
-        self.llm.max_tokens = 2048
+        self.llm.max_tokens = 4096
         self.random_state = random_state
         self.batch_size = batch_size
 
