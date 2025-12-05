@@ -203,6 +203,8 @@ def parse_args():
 
     # Claim quality evaluation
     parser.add_argument("--evaluate_claim_quality", action="store_true")
+    parser.add_argument("--valid_decomposition_input_file", type=str, default=None,
+                        help="Path to valid decomposition input file")
     parser.add_argument("--claim_quality_evaluation_llm_provider", type=str, choices=["ollama", "openapi"],
                         default="ollama", help="LLM provider for claim quality evaluation")
     parser.add_argument("--claim_quality_evaluation_model_name", type=str, default="gemma3:12b",
@@ -271,27 +273,23 @@ if __name__ == '__main__':
         claim_quality_evaluation_server=args.claim_quality_evaluation_server,
     )
 
-    decompose_start_time = time.time()
-    # Process decomposition
     decompositions = []
-    if not args.verify_only:
+    if args.decompose_only:
+        decompose_start_time = time.time()
         print(f"Running decomposition with {args.decomposition_mode} mode...")
         decompositions = scorer.decompose(dataset)
         with jsonlines.open(decomposition_output_file, 'w') as writer:
             writer.write_all(decompositions)
+        decompose_end_time = time.time()
+        print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
+        print(f"Decomposition completed. Results saved to {decomposition_output_file}")
+        exit(0)
 
-        if args.decompose_only:
-            print(f"Decomposition completed. Results saved to {decomposition_output_file}")
-            exit(0)
-    else:
+    if args.evaluate_claim_quality:
         # Load existing decompositions
         with jsonlines.open(args.decomposition_input_file, 'r') as reader:
             decompositions = [item for item in reader.iter()]
 
-    decompose_end_time = time.time()
-    print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
-
-    if args.evaluate_claim_quality:
         # Evaluate claim quality
         time_claim_quality_start = time.time()
         # Add context to each decomposition
@@ -308,9 +306,104 @@ if __name__ == '__main__':
             writer.write_all(claim_quality_decompositions)
         time_claim_quality_end = time.time()
         print(f"Claim quality evaluation time: {time_claim_quality_end - time_claim_quality_start:.2f} seconds")
-
         print(f"Claim quality evaluation completed. Results saved to {claim_quality_output_file}")
         exit(0)
+
+    if args.verification_only:
+        # Load existing decompositions
+        with jsonlines.open(args.valid_decomposition_input_file, 'r') as reader:
+            decompositions = [item for item in reader.iter()]
+
+        verification_start_time = time.time()
+        # Process verification
+        print(f"Running verification with {args.verification_mode} mode...")
+        print(f"len decompositions: {len(decompositions)}")
+        verifications = scorer.verify(decompositions)
+        with jsonlines.open(verification_output_file, 'w') as writer:
+            writer.write_all(verifications)
+        verification_end_time = time.time()
+        print(f"Verification time: {verification_end_time - verification_start_time:.2f} seconds")
+
+        # Combine results
+        combined_output = {
+            d["id"]: {
+                "id": d["id"],
+                "claims": []
+            } for d in decompositions
+        }
+        for verification in verifications:
+            claim_info = {
+                k: v for k, v in verification.items() if k not in {"id", "sentence_id", "claim_id"}
+            }
+            combined_output[verification['id']]['claims'].append(claim_info)
+
+        # Aggregate scores
+        for idx in combined_output:
+            claim_scores = [claim['score'] for claim in combined_output[idx]['claims']]
+            if len(claim_scores) == 0:
+                combined_output[idx]["score"] = None
+            else:
+                combined_output[idx]["score"] = sum(claim_scores) / len(claim_scores)
+
+        combined_output = [v for k, v in combined_output.items()]
+        with jsonlines.open(output_file, 'w') as writer:
+            writer.write_all(combined_output)
+
+        # Calculate and display final metrics
+        scores = [item['score'] for item in combined_output if item['score'] is not None]
+        final_score = sum(scores) / len(scores) if scores else None
+
+        print(f"\n=== MedScore Results ({args.decomposition_mode} + {args.verification_mode}) ===")
+        print(f"Total responses evaluated: {len(combined_output)}")
+        print(f"Responses with valid scores: {len(scores)}")
+        print(f"Final MedScore: {final_score:.4f}")
+        print(f"Results saved to: {output_file}")
+
+        # Additional metrics for comparison
+        if scores:
+            import statistics
+
+            print(f"Score statistics:")
+            print(f"  Mean: {statistics.mean(scores):.4f}")
+            print(f"  Median: {statistics.median(scores):.4f}")
+            if len(scores) > 1:
+                print(f"  Std Dev: {statistics.stdev(scores):.4f}")
+            print(f"  Min: {min(scores):.4f}")
+            print(f"  Max: {max(scores):.4f}")
+        exit(0)
+
+    # Full flow: decompose -> filter valid -> verify
+    # ==========Decomposition==========
+    decompose_start_time = time.time()
+    print(f"Running decomposition with {args.decomposition_mode} mode...")
+    decompositions = scorer.decompose(dataset)
+    with jsonlines.open(decomposition_output_file, 'w') as writer:
+        writer.write_all(decompositions)
+    decompose_end_time = time.time()
+    print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
+    print(f"Decomposition completed. Results saved to {decomposition_output_file}")
+
+    # ==========Claim Quality Evaluation==========
+    # Evaluate claim quality
+    time_claim_quality_start = time.time()
+    # Add context to each decomposition
+    decompositions_with_context = []
+    for item in decompositions:
+        for data_item in dataset:
+            if data_item["id"] == item["id"]:
+                item["context"] = data_item["response"]
+                break
+        decompositions_with_context.append(item)
+    claim_quality_decompositions = scorer.evaluate_claim_quality(decompositions_with_context)
+    claim_quality_output_file = os.path.join(args.output_dir, f"{mode_prefix}_claim_quality_evaluations.jsonl")
+    with jsonlines.open(claim_quality_output_file, 'w') as writer:
+        writer.write_all(claim_quality_decompositions)
+    time_claim_quality_end = time.time()
+    print(f"Claim quality evaluation time: {time_claim_quality_end - time_claim_quality_start:.2f} seconds")
+    print(f"Claim quality evaluation completed. Results saved to {claim_quality_output_file}")
+
+    # ===========Verification==========
+    decompositions = claim_quality_decompositions
 
     verification_start_time = time.time()
     # Process verification
@@ -368,3 +461,4 @@ if __name__ == '__main__':
             print(f"  Std Dev: {statistics.stdev(scores):.4f}")
         print(f"  Min: {min(scores):.4f}")
         print(f"  Max: {max(scores):.4f}")
+    exit(0)
