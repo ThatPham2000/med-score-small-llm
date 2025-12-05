@@ -202,7 +202,7 @@ def parse_args():
                         help="Path to custom decomposition prompt")
 
     # Claim quality evaluation
-    parser.add_argument("--evaluate_claim_quality", action="store_true")
+    parser.add_argument("--evaluate_claim_quality_only", action="store_true")
     parser.add_argument("--valid_decomposition_input_file", type=str, default=None,
                         help="Path to valid decomposition input file")
     parser.add_argument("--claim_quality_evaluation_llm_provider", type=str, choices=["ollama", "openapi"],
@@ -285,7 +285,7 @@ if __name__ == '__main__':
         print(f"Decomposition completed. Results saved to {decomposition_output_file}")
         exit(0)
 
-    if args.evaluate_claim_quality:
+    if args.evaluate_claim_quality_only:
         # Load existing decompositions
         with jsonlines.open(args.decomposition_input_file, 'r') as reader:
             decompositions = [item for item in reader.iter()]
