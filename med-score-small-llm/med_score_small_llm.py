@@ -312,8 +312,8 @@ if __name__ == '__main__':
     if args.verify_only:
         # Load existing decompositions
         with jsonlines.open(args.valid_decomposition_input_file, 'r') as reader:
-            decompositions = [item for item in reader.iter() if item["claim_quality_type"] == "Valid"]
-        print(f"len valid decompositions: {len(decompositions)}")
+            decompositions = [item for item in reader.iter()]
+        print(f"len decompositions: {len(decompositions)}")
 
         verification_start_time = time.time()
         # Process verification
@@ -404,8 +404,8 @@ if __name__ == '__main__':
     print(f"Claim quality evaluation completed. Results saved to {claim_quality_output_file}")
 
     # ===========Verification==========
-    decompositions = [d for d in claim_quality_decompositions if d["claim_quality_type"] == "Valid"]
-    print(f"len valid decompositions: {len(decompositions)}")
+    decompositions = [d for d in claim_quality_decompositions]
+    print(f"len decompositions: {len(decompositions)}")
 
     verification_start_time = time.time()
     # Process verification

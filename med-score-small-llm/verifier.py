@@ -24,24 +24,56 @@ class Verifier(object):
         self.batch_size = batch_size
 
     def do_verify(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        verifier_inputs = self.add_evidence_to_verification_input(decompositions)
-        messages = self.prepare_messages(verifier_inputs)
+        # Separate Valid and non-Valid decompositions
+        valid_decompositions = []
+        non_valid_indices = []
+        valid_indices = []
 
-        all_completions = []
-        n_iter = len(messages) // self.batch_size
-        for batch in tqdm(chunker(messages, self.batch_size), desc="Verifier process", total=n_iter):
-            completions = asyncio.run(self.llm.batch_response(batch))
-            all_completions.extend(completions)
+        for idx, d in enumerate(decompositions):
+            if d.get("claim_quality_type") == "Valid":
+                valid_decompositions.append(d)
+                valid_indices.append(idx)
+            else:
+                non_valid_indices.append(idx)
 
+        print(f"len valid decompositions: {len(valid_decompositions)}")
+
+        # Only verify Valid decompositions
         verification_output = []
-        for verifier_input, completion in zip(verifier_inputs, self.llm.normalize_llm_response(all_completions)):
-            raw_output = completion.strip()
-            is_supported = self.parse_verification_output(raw_output)
-            output = {k: v for k, v in verifier_input.items()}
-            output["raw"] = raw_output
-            output["score"] = is_supported
-            verification_output.append(output)
-        return verification_output
+        if valid_decompositions:
+            verifier_inputs = self.add_evidence_to_verification_input(valid_decompositions)
+            messages = self.prepare_messages(verifier_inputs)
+
+            all_completions = []
+            n_iter = len(messages) // self.batch_size
+            for batch in tqdm(chunker(messages, self.batch_size), desc="Verifier process", total=n_iter):
+                completions = asyncio.run(self.llm.batch_response(batch))
+                all_completions.extend(completions)
+
+            for verifier_input, completion in zip(verifier_inputs, self.llm.normalize_llm_response(all_completions)):
+                raw_output = completion.strip()
+                is_supported = self.parse_verification_output(raw_output)
+                output = {k: v for k, v in verifier_input.items()}
+                output["raw"] = raw_output
+                output["score"] = is_supported
+                verification_output.append(output)
+
+        # Create output for non-Valid decompositions
+        non_valid_outputs = []
+        for idx in non_valid_indices:
+            output = {k: v for k, v in decompositions[idx].items()}
+            output["raw"] = None
+            output["score"] = 0.0
+            non_valid_outputs.append((idx, output))
+
+        # Merge results maintaining original order
+        all_outputs = [None] * len(decompositions)
+        for i, output in enumerate(verification_output):
+            all_outputs[valid_indices[i]] = output
+        for idx, output in non_valid_outputs:
+            all_outputs[idx] = output
+
+        return all_outputs
 
     def parse_verification_output(self, completion_message: str) -> float:
         generated_answer = completion_message.strip().lower()
