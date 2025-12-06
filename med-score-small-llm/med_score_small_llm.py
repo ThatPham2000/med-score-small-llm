@@ -309,7 +309,7 @@ if __name__ == '__main__':
         print(f"Claim quality evaluation completed. Results saved to {claim_quality_output_file}")
         exit(0)
 
-    if args.verification_only:
+    if args.verify_only:
         # Load existing decompositions
         with jsonlines.open(args.valid_decomposition_input_file, 'r') as reader:
             decompositions = [item for item in reader.iter() if item["claim_quality_type"] == "Valid"]
