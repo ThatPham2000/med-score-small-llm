@@ -312,8 +312,7 @@ if __name__ == '__main__':
     if args.verify_only:
         # Load existing decompositions
         with jsonlines.open(args.valid_decomposition_input_file, 'r') as reader:
-            decompositions = [item for item in reader.iter()]
-            decompositions = [d for d in decompositions if d["claim_quality_type"] == "Valid"]
+            decompositions = [item for item in reader.iter() if item["claim_quality_type"] == "Valid"]
         print(f"len valid decompositions: {len(decompositions)}")
 
         verification_start_time = time.time()
