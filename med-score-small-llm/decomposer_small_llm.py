@@ -10,7 +10,7 @@ class DecomposerSmallLLM(Decomposer):
             llm: LLM = None,
     ):
         super().__init__(llm=llm)
-        self.llm.max_tokens = 2048
+        self.llm.max_tokens = 4096
 
     def format_input(self, context: str, sentence: str) -> str:
         return f"""Context: {context}
