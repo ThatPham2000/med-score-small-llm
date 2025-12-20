@@ -26,10 +26,10 @@ class ClaimQualityEvaluation(object):
     def do_claim_quality_evaluation(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         # 1. Classification
         classifications = self.classify_claim_quality(decompositions)
-        # 2.1 Normalization invalid claims (Context-dependent, Incorrectly structured, or Incomplete)
-        # 2.2 Residual extraction
-        # 3. Aggregate + Deduplication
-        # 4. Residual analysis
+        # 2. Normalization invalid claims (Context-dependent, Incorrectly structured, or Incomplete)
+        # 3. Residual extraction + create new decompositions
+        # 3. Classification of residuals
+        # 4. Check coverage
         return classifications
 
     def classify_claim_quality(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
