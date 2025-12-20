@@ -249,7 +249,7 @@ result = ollama.chat(
         "seed": 42,
         "temperature": 0.0,
         "top_p": 1.0,
-        # "num_predict": 20000,
+        "num_predict": 4096,
     }
 )
 
