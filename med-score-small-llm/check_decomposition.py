@@ -43,9 +43,8 @@ Step 4: DECOMPOSE (Split Atomic Facts)
 - Rule: Each atomic fact must represent a SINGLE, distinct medical concept.
 
 Step 5: Check Incomplete Claims
-- Did you lose any modifiers ('may', 'severe'), dosages, or conditions ('if fever occurs')? Put them back.
-- Did you lose any modifiers ("may", "could")? Put them back.
-- Did you lose any frequency ("twice daily")? Put them back.
+- Did you lose any modifiers (e.g., "may", "could", "likely")? Put them back.
+- Did you lose any frequency (e.g., "twice daily")? Put them back.
 - Did you lose any dosages? Put them back.
 - Did you lose any conditions or dependencies are retained (e.g., "if", "when", "in case of")? Put them back.
 
