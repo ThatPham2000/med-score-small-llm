@@ -150,8 +150,8 @@ Facts:"""
 
 import ollama
 
-context = """I spoke to your doctor and they wanted to reassure you that it's completely understandable to feel anxious about bloodwork, especially if you have a history of fainting. They recommended that when you arrive for your appointment tomorrow, let the phlebotomist know about your concerns and that you tend to pass out during blood draws. You can ask if it's possible to lie back in the chair or even lie down on a cot or bed during the procedure. This can help reduce the likelihood of fainting. Additionally, your doctor suggested that you take a few minutes to use the restroom before the blood draw, as this can also help. By being open with the phlebotomist and taking a few simple precautions, you should be able to get through the bloodwork without any issues."""
-sentence = """They recommended that when you arrive for your appointment tomorrow, let the phlebotomist know about your concerns and that you tend to pass out during blood draws."""
+context = """Dear Cedric,\n\nI spoke to your doctor, and they would like to know if you had a full range of motion in your knee at any point after your surgery in 2013. This information will help them better understand your current situation.\n\nAccording to your doctor, regaining full range of motion may be challenging, especially without the guidance of a physiotherapist. They also mentioned that there could be underlying issues, such as an incorrect ACL reconstruction or the growth of soft tissue around the reconstruction, that may be contributing to your limited mobility. Unfortunately, these issues may not be resolvable with exercises and therapy alone.\n\nYour doctor would like to discuss your case further and explore possible options for improving your knee mobility. They will likely need to assess your knee and review your medical history to determine the best course of action.\n\nPlease let us know if you have any questions or concerns, and we will be happy to schedule a follow-up appointment to discuss your treatment options.\n\nBest regards,\n[Your Name]\nOn behalf of [Doctor's Name]"""
+sentence = """They will likely need to assess your knee and review your medical history to determine the best course of action."""
 
 print('Context:', context)
 print('Sentence:', sentence)
@@ -160,7 +160,7 @@ content = get_prompt(context=context, sentence=sentence)
 print(content)
 
 result = ollama.chat(
-    model='gemma3:12b',
+    model='llama3.2-vision:11b',
     messages=[
         {"role": "user", "content": content}
     ],
