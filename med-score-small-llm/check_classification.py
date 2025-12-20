@@ -230,9 +230,9 @@ contentMap = {"id": "4d0x3s_20241101", "sentence_id": 6, "sentence": "They will 
 context = contentMap["context"]
 sentence = contentMap["sentence"]
 # claim = contentMap["claim"]
-claim = "Assessing the knee is necessary to determine the best course of action."
+claim = "Reviewing the medical history is likely necessary to determine the best course of action."
 # other_claims = contentMap["other_claims"]
-other_claims = ["Reviewing the medical history is necessary to determine the best course of action.", "Determining the best course of action requires assessing the knee and reviewing the medical history."]
+other_claims = ["Assessing the knee is likely necessary to determine the best course of action."]
 
 print('Context:', context)
 print('Sentence:', sentence)

@@ -22,15 +22,14 @@ INPUT DATA:
 ---
 INSTRUCTIONS:
 Decompose the Sentence into a list of independent facts by following these guidelines:
-- No Unverifiable Narratives: Ignore event narratives and patient-empathy.
-- No Hallucinations: Only include information explicitly stated in the Sentence.
-- No Incomplete Claims: Do not lose the original dependency condition or modifier.
-- Correct Structure: Convert commands or questions into declarative statements. Remove reporting frames.
-- No Context-Dependency: Replace all pronouns (he, it, they), all possessive adjectives (their, your, its, his, her) with specific ones from the Context.
-- No Redundancies: Each fact must be unique and non-overlapping both semantically and wording.
-- No Omissions: Preserve all dosages, modifiers, and conditions.
-- Each fact must focus on a SINGLE medical concept.
-- No Complex Claims: Split compound sentences containing "AND/OR".
+1. Filter Unverifiable Narratives: Ignore event narratives and patient-empathy.
+2. No Hallucinations: Only include information explicitly stated in the Sentence.
+3. Preserve Modifiers: Never drop "may", "could", "likely", dosages, or frequencies; Do not lose the original dependency condition or modifier.
+4. Correct Structure: Convert commands or questions into declarative statements. Remove reporting frames.
+5. Resolve References: Replace all pronouns (he, it, they), all possessive adjectives (their, your, its, his, her) with specific ones from the Context.
+6. No Redundancies: Each fact must be unique and non-overlapping both semantically and wording.
+7. Atomic Concepts: Each fact must contain only ONE medical concept.
+8. No Complex Claims: Split compound sentences containing "AND/OR".
 
 ---
 REASONING CHAIN OF THOUGHT:
