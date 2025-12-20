@@ -13,140 +13,150 @@ class DecomposerSmallLLM(Decomposer):
         self.llm.max_tokens = 4096
 
     def format_input(self, context: str, sentence: str) -> str:
-        return f"""Context: {context}
+        prompt = f"""You are a meticulous medical expert specializing in information extraction. Your task is to decompose a medical sentence into individual, verifiable facts by following a rigorous reasoning process.
 
-Please breakdown the following sentence into independent facts: {sentence}
-
-Facts:
-"""
-
-    def get_system_prompt(self) -> str:
-        system_prompt = """You are a meticulous medical expert specializing in information extraction. Your task is to decompose a medical sentence into individual, verifiable facts by following a rigorous reasoning process designed to resolve the 7 common issues of the MedScore Taxonomy.
+INPUT DATA:
+- Context: full medical response or passage (used ONLY to resolve pronouns and references).
+- Sentence: the specific sentence that must be decomposed into atomic facts.
 
 ---
-GUIDING PRINCIPLE: A Systematic Approach to Atomic Fact Extraction
-Your goal is to transform complex sentences into a list of simple, standalone facts. This process is designed to systematically prevent common errors, including:
-1.  Extracting unverifiable personal narratives.
-2.  Losing critical medical nuance (e.g., modifiers, dosage).
-3.  Creating claims that depend on outside context (e.g., using pronouns).
-4.  Generating complex claims with multiple concepts.
-5.  Failing to convert questions or commands into declarative statements.
-6.  Introducing information not present in the original text (hallucinations).
-7.  Producing redundant or omitted claims.
----
-
-CRITICAL INSTRUCTIONS:
+INSTRUCTIONS:
+Decompose the Sentence into a list of independent facts by following these guidelines:
+- No Unverifiable Narratives: Ignore event narratives and patient-empathy.
+- No Hallucinations: Only include information explicitly stated in the Sentence.
+- No Incomplete Claims: Do not lose the original dependency condition or modifier.
+- Correct Structure: Convert commands or questions into declarative statements. Remove reporting frames.
+- No Context-Dependency: Replace all pronouns (he, it, they), all possessive adjectives (their, your, its, his, her) with specific ones from the Context.
+- No Redundancies: Each fact must be unique and non-overlapping both semantically and wording.
+- No Omissions: Preserve all dosages, modifiers, and conditions.
 - Each fact must focus on a SINGLE medical concept.
-- Each fact must be a simple, declarative sentence.
-- All crucial medical details (modifiers, conditions, dosage) must be preserved.
-- If a sentence contains no verifiable medical information, you MUST output "No verifiable claim".
+- No Complex Claims: Split compound sentences containing "AND/OR".
 
+---
 REASONING CHAIN OF THOUGHT:
-You must follow these 6 steps in order. Each step solves specific MedScore issues.
+Step 1: TRIAGE (Filter Narratives)
+- Does it include event narratives ("I spoke with...", "you are experiencing pain") or present for patient-empathy (i.e., "bedside manner" such as "Your pain can be very tiring") or have no medical content to extract?
+If YES, STOP here and output "No verifiable claim".
+If NO, PROCEED to Step 2.
 
-Step 1: TRIAGE - Is this sentence a Narrative or a Factual Report?
-First, analyze the sentence's primary function. Is it describing a personal interaction (e.g., "I spoke with...")? If so, it is an UNVERIFIABLE NARRATIVE. The process stops here. If the sentence is reporting a medical statement (e.g., "The doctor said that..."), proceed.
-(This step solves: Unverifiable Claims)
+Step 2: ISOLATE & FORMAT (Structure Check)
+- Remove the reporting frame (e.g., "The doctor believes that...", "The study shows that..."). Extract only the core medical content.
+- Convert commands/questions into a passive advice statement or a declarative fact. Consider the context, use phrases like "Patients should..." or correct ones.
 
-Step 2: ISOLATE CONTENT & STRIP REPORTING FRAME.
-Separate the reporting frame (e.g., "The doctor believes that...", "The study shows that...") from the core medical content. The frame itself is not a verifiable fact. Your focus for the next steps is ONLY the medical content clause.
-(This step solves: Incorrectly structured claims)
+Step 3: DECONTEXTUALIZE (Resolve References)
+- Replace all pronouns (it, they, your) with the specific entities in the Context.
+- Replace all possessive adjectives (their, your, its, his, her) with the specific entities in the Context.
+- Replace all general terms (the medication, your symptoms) with the specific entities in the Context. For example, "your symptoms" must be replaced with the actual symptoms mentioned, like "irregular periods and extreme pain".
 
-Step 3: DECONTEXTUALIZE - Make the claim standalone.
-Replace ALL pronouns (it, they, your) and general terms (the medication, your symptoms) with the specific entities they refer to within the context. For example, "your symptoms" should be replaced with the actual symptoms mentioned, like "irregular periods and extreme pain". This ensures each fact can be understood without the original text.
-(This step solves: Context-Dependent Claims)
+Step 4: DECOMPOSE (Split Atomic Facts)
+- Now that the sentence is clean and resolved, break it into the smallest possible pieces of information.
+- Action: Split compound sentences containing "AND" / "OR" into separate lines.
+- Rule: Each atomic fact must represent a SINGLE, distinct medical concept.
 
-Step 4: DECOMPOSE - Break it down into atomic facts.
-Break the verifiable clause into the smallest possible pieces of information. Each piece must represent a single, distinct medical concept.
- - Critical Conjunction Rule: If a subject is linked to multiple medical concepts (e.g., 'Cough are related to A and B'), you must create a separate fact for each link (Fact 1: 'Cough are related to A', Fact 2: 'Cough are related to B'). If multiple subjects or predicates are linked by "and", you MUST create a separate fact for each. (e.g., 'A and B are causes' becomes 'A is a cause' and 'B is a cause')
-(This step solves: Hallucinated Claims)
+Step 5: Check Incomplete Claims
+- Did you lose any modifiers ('may', 'severe'), dosages, or conditions ('if fever occurs')? Put them back.
+- Did you lose any modifiers ("may", "could")? Put them back.
+- Did you lose any frequency ("twice daily")? Put them back.
+- Did you lose any dosages? Put them back.
+- Did you lose any conditions or dependencies are retained (e.g., "if", "when", "in case of")? Put them back.
 
-Step 5: RECONSTRUCT - Build complete, declarative facts.
-For each atomic fact, reconstruct a full sentence. Ensure you preserve all original medical nuance (modifiers like 'may', 'could'; frequency like 'twice daily'). Convert any questions or commands into a DECLARATIVE FORMAT.
-(This step solves: Incomplete Claims, Incorrectly structured)
+Step 6: Check Hallucinations
+- All claims must be grounded in the original Sentence with no additional information.
+- If any information is inferred or added that is not explicitly stated in the Sentence, remove it.
 
-Step 6: REVIEW - Final Quality and Coverage Check.
-Read the final list of facts and perform two critical checks:
- - Deduplication Check: Remove any REDUNDANT claims or minor rephrasings of the same fact. A claim is redundant if it is a direct duplicate OR if it is a composite of other, more atomic claims.
- - Coverage Check: Compare your final facts against the isolated content from Step 2. Have all important medical concepts been extracted? This prevents OMITTED claims.
-(This step solves: Redundant Claims, Omitted Claims)
+Step 7: Check Redundant Claims
+- Ensure that no two facts are semantically or wording-wise overlapping.
+- Compare extracted claims against each other.
+- Rule 1 (Subset Removal): If Claim A is merely a shorter, less specific version of Claim B without adding new information, REMOVE Claim A.
+  (Example: "Do not worry" is a subset of "Do not worry about symptom changes" -> DELETE "Do not worry").
+- Rule 2 (Split Exception): Do NOT remove claims that resulted from splitting "AND/OR" lists.
+  (Example: Sentence: "Patient has cough and fever". Atomic Facts: "Patient has cough" and "Patient has fever" are NOT redundant to each other, nor are they subsets of a hypothetical combined claim. Keep BOTH).
+- Goal: Keep the most specific version of a fact, but preserve all distinct items from a list.
 
-HERE ARE SOME EXAMPLES WITH THE REQUIRED REASONING:
+Step 8: Coverage Check
+- Final Audit: Do the final list of atomic facts capture 100% of the medical info from the original Sentence?
 
-Context: (Full context about tetanus)
-Please breakdown the following sentence into independent facts: I spoke to your doctor and they wanted to address your concerns about tetanus.
+---
+FEW-SHOT EXAMPLES:
 
+Example 1:
+Context: I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit.
+Sentence: I spoke to your doctor and they wanted to address your concerns about tetanus.
 Reasoning:
-Step 1: TRIAGE. The sentence "I spoke to your doctor..." describes a personal interaction. This is an unverifiable narrative. The process stops here.
-
+Step 1: TRIAGE (Filter Narratives): The sentence "I spoke to your doctor..." describes a personal interaction. This is an unverifiable narrative. The process stops here.
 Facts:
 - No verifiable claim
----
+
+Example 2:
 Context: I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
-Please breakdown the following sentence into independent facts: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+Sentence: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
 Reasoning:
-Step 1: TRIAGE. The frame "The doctor noted that..." indicates a factual report. I will proceed.
-Step 2: ISOLATE CONTENT & STRIP REPORTING FRAME. The reporting frame is "The doctor noted that". The core medical content is: "while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
-Step 3: DECONTEXTUALIZE. "these substances" and "they" are replaced with "Anabolic steroids" from the context.
-Step 4: DECOMPOSE. I will break the content into four distinct concepts:
- - Concept 1: Positive effect on muscle health.
- - Concept 2: Positive effect on bone health.
- - Concept 3: The presence of significant risks.
- - Concept 4: The presence of potential side effects.
-Step 5: RECONSTRUCT. I will build four declarative sentences, preserving the original modifiers.
- - Fact 1: Anabolic steroids may have positive effects on muscle health.
- - Fact 2: Anabolic steroids carry significant risks and potential side effects.
- - Fact 3: Anabolic steroids carry significant risks.
- - Fact 4: Anabolic steroids carry potential side effects.
-Step 6: REVIEW - Final Quality and Coverage Check.
- - Deduplication Check: I have identified that Fact 2 ("...carry significant risks and potential side effects") is a composite of Fact 3 and Fact 4. It is redundant because it's not atomic. I will remove Fact 2 and keep the more specific facts (3 and 4).
- - Coverage Check: I am comparing my list to the concepts from Step 4. I have omitted Concept 2 ("positive effects on bone health"). I must add this fact to the final list to ensure complete coverage.
+Step 1: TRIAGE (Filter Narratives): It does not include event narratives or present for patient-empathy, and it contains verifiable medical content, so we proceed to Step 2.
+Step 2: ISOLATE & FORMAT (Structure Check): I am removing the reporting frame "The doctor noted that". The core medical content is: "while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
+Step 3: DECONTEXTUALIZE (Resolve References): Step 3: I am resolving references using the Context. "These substances" and "they" refer to "anabolic steroids". The specific medical content becomes: "while [anabolic steroids] may have positive effects on muscle and bone health, [anabolic steroids] also carry significant risks and potential side effects."
+Step 4: DECOMPOSE (Split Atomic Facts): I am decomposing the sentence based on the "AND" conjunctions.
+- "Positive effects on muscle AND bone health" splits into: (1) muscle health and (2) bone health.
+- "Significant risks AND potential side effects" splits into: (3) significant risks and (4) potential side effects.
+Step 5: Check Incomplete Claims: I am checking for missing modifiers.
+- For the benefits, I preserved the modifier "may have" and "positive".
+- For the harms, I preserved the modifiers "significant" (for risks) and "potential" (for side effects).
+Step 6: Check Hallucinations: All claims are grounded in the original text. No information was added.
+Step 7: Check Redundant Claims: I am checking for redundancies.
+- The facts are derived from splitting lists (muscle/bone and risks/side effects).
+- According to Rule 2 (Split Exception), these are distinct concepts sharing a subject/verb, so I will keep all of them. None are subsets of each other.
+Step 8: Coverage Check: I have captured all four key concepts: muscle health, bone health, risks, and side effects. Coverage is complete.
 Facts:
 - Anabolic steroids may have positive effects on muscle health.
 - Anabolic steroids may have positive effects on bone health.
 - Anabolic steroids carry significant risks.
 - Anabolic steroids carry potential side effects.
----
+
+Example 3:
 Context: I spoke to your doctor and they wanted to address your concerns about your irregular periods and extreme pain. They believe that your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods.
-Please breakdown the following sentence into independent facts: They believe that your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods.
-
+Sentence: They believe that your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods.
 Reasoning:
-Step 1: TRIAGE. The frame "They believe that..." indicates a factual report. I will proceed.
-Step 2: ISOLATE CONTENT & STRIP REPORTING FRAME. The reporting frame is "They believe that". The core medical content is: "your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods."
-
-Step 3: DECONTEXTUALIZE. "your symptoms" is replaced with its specific meaning from the context: "Irregular periods and extreme pain". "your body" is replaced with "the body", and "your menstrual cycle" is replaced with "the menstrual cycle".
-Step 4: DECOMPOSE. I will break the content into all its distinct concepts, applying the conjunction rule:
- - Concept 1: The link between symptoms and the first condition.
- - Concept 2: The definition of the first condition.
- - Concept 3: The link between symptoms and the second condition (This is the crucial "and" rule).
- - Concept 4: The definition of the second condition.
-Step 5: RECONSTRUCT. I will build four declarative sentences, preserving the modifier "could be related to" for the linkage facts.
- - Fact 1: Irregular periods and extreme pain could be related to anovulatory cycles.
- - Fact 2: Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle.
- - Fact 3: Irregular periods and extreme pain could be related to primary dysmenorrhea.
- - Fact 4: Primary dysmenorrhea is a condition that causes painful periods.
-Step 6: REVIEW - Final Quality and Coverage Check.
- - Deduplication Check: The four facts are distinct and non-redundant.
- - Coverage Check: I've compared the facts to the content from Step 2. All key concepts (the two conditions, their definitions, and their link to symptoms) have been extracted. No important information was omitted.
-
+Step 1: TRIAGE (Filter Narratives): It does not include event narratives or present for patient-empathy, and it contains verifiable medical content, so we proceed to Step 2.
+Step 2: ISOLATE & FORMAT (Structure Check): I am removing the reporting frame "They believe that". The core medical content is: "your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods."
+Step 3: DECONTEXTUALIZE (Resolve References): I am resolving references using the Context.
+- "your symptoms" refers to "irregular periods and extreme pain".
+- "your body" refers to "the body".
+- "your menstrual cycle" refers to "the menstrual cycle". 
+The specific medical content becomes: "[irregular periods and extreme pain] could be related to anovulatory cycles, which means that [the body] is not releasing an egg during [the menstrual cycle], and primary dysmenorrhea, which is a condition that causes painful periods."
+Step 4: DECOMPOSE (Split Atomic Facts): I am breaking down the content.
+- Split the main compound link: "irregular periods and extreme pain" is linked to "anovulatory cycles" AND "primary dysmenorrhea".
+- Extract the nested definitions: "anovulatory cycles" are defined in the text, and "primary dysmenorrhea" is defined in the text.
+Step 5: Check Incomplete Claims: Preserve the modifier "could be related to" for the diagnostic claims. Preserve the full definitions.
+Step 6: Check Hallucinations: No outside information added. All definitions are strictly from the text.
+Step 7: Check Redundant Claims: Check Redundancy: The claims regarding anovulatory cycles and primary dysmenorrhea are distinct (Split Exception applies). The definitions are distinct. No subsets found.
+Step 8: Coverage Check: All concepts (symptoms, two potential causes, two definitions) are captured.
 Facts:
 - Irregular periods and extreme pain could be related to anovulatory cycles.
 - Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle.
 - Irregular periods and extreme pain could be related to primary dysmenorrhea.
 - Primary dysmenorrhea is a condition that causes painful periods.
 
+---
 OUTPUT FORMAT:
 Reasoning:
 Step 1: [Step 1 reasoning]
 Step 2: [Step 2 reasoning]
-...
+Step 3: [Step 3 reasoning]
+Step 4: [Step 4 reasoning]
+Step 5: [Step 5 reasoning]
+Step 6: [Step 6 reasoning]
 Facts:
 - [Fact 1]
 - [Fact 2]
 ...
 
-Now, for your task, follow the same reasoning process."""
-        return system_prompt
+---
+YOUR TASK:
+Context: {context}
+
+Sentence: {sentence}
+
+Facts:"""
+        return prompt
 
     def format_completions(self, decomp_input: List[Dict[str, Any]], completions: List[str]) -> List[Dict[str, Any]]:
         decompositions = []
