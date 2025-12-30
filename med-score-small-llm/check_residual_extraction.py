@@ -1,138 +1,118 @@
 import json
+from typing import List
 
 
-def format_normalization_input(context: str, sentence: str, claim: str, error_label: str) -> str:
-    prompt = f"""You are an expert Medical Text Normalization System. Your task is to REPAIR an "Invalid Atomic Claim" based on its "Error Label" and the "Original Source" information.
-
-Your goal is to transform the Invalid Claim into a Valid, Standalone, Declarative, and Complete atomic fact without altering the original medical meaning.
+def residual_extraction(context: str, sentence: str, current_claims: List[str]) -> str:
+    formatted_current_claims = json.dumps(current_claims)
+    prompt = f"""You are a specialized Medical Gap Analyst. Your task is to identify medical information missing from a list of "Current Claims" compared to the "Original Sentence", and generate new atomic facts to fill those gaps.
 
 INPUT DATA:
-- Context: The full paragraph containing the information.
-- Original Sentence: The specific sentence the claim was extracted from.
-- Invalid Claim: The claim that needs fixing.
-- Error Label: The specific reason the claim was rejected (Context-dependent, Incorrectly structured, or Incomplete).
+- Context: Full text (used ONLY to resolve pronouns/references).
+- Sentence: The ground truth source sentence.
+- Current Claims: A list of facts already extracted from the Sentence.
 
 ---
-REPAIR STRATEGIES (Follow the strategy corresponding to the Error Label):
-
-STRATEGY A: IF Error Label is "Context-dependent"
-- Problem: The claim contains unresolved pronouns (it, they, he, she) or unresolved possessive adjectives (their, your, its, his, her) or vague references (the medication, this condition) or the first person.
-- Fix: Locate the specific entity (noun/proper noun) in the "Context" or "Original Sentence" that the pronoun refers to. Replace the pronoun/vague term with the specific entity.
-- Example: "It causes nausea" + Context "Metformin..." -> "Metformin causes nausea."
-
-STRATEGY B: IF Error Label is "Incorrectly structured"
-- Problem: The claim is an Imperative (command), a Question, or contains a Reporting Frame (e.g., "The doctor said that...").
-- Fix (Imperative/Question): Convert the command into a passive advice statement or a declarative fact. Consider the context, use phrases like "Patients should..." or correct ones.
-- Fix (Reporting Frame): Remove the reporting frame (e.g., "The study shows that", "The doctor noted") and keep only the core medical fact.
-- Example: "Take with food" -> "The medication should be taken with food."
-- Example: "The doctor noted that Aspirin reduces pain" -> "Aspirin reduces pain."
-
-STRATEGY C: IF Error Label is "Incomplete"
-- Problem: The claim has lost a critical modifier (may, likely), a condition (if, when), or a dependency due to over-decomposition.
-- Fix: Retrieve the missing modifier, condition, or clause from the "Original Sentence" and re-attach it to the claim.
-- Example: Claim "Stop taking the drug" + Original "If rash occurs, stop taking..." -> "Patients should stop taking the drug if a rash occurs."
+INSTRUCTIONS:
+1. GAP ANALYSIS: Compare the Sentence vs. Current Claims. Identify specific medical concepts that are present in the Sentence but COMPLETELY ABSENT or INCOMPLETELY REPRESENTED in the Claims.
+   - Focus on: Missing Entities (e.g., Drugs, Symptoms), Missing Modifiers (e.g., Severe, Acute), Missing Values (e.g., 500mg, Daily), Missing Conditions (e.g, If, When).
+2. IGNORE SYNONYMS: If the meaning is already covered by different words (e.g., "walk" vs "ambulate"), DO NOT create a new claim.
+3. GENERATE RECOVERY CLAIMS: Convert the identified missing info into new Atomic Facts.
+   - Use the Decomposition Rules by following these guidelines:
+        a. Filter Unverifiable Narratives: Ignore event narratives and patient-empathy.
+        b. No Hallucinations: Only include information explicitly stated in the Sentence.
+        c. Preserve Modifiers: Never drop "may", "could", "likely", dosages, or frequencies; Do not lose the original dependency condition or modifier.
+        d. Correct Structure: Convert commands or questions into declarative statements. Remove reporting frames.
+        e. Resolve References: Replace all pronouns (he, it, they), all possessive adjectives (their, your, its, his, her) with specific ones from the Context.
+        f. No Redundancies: Each fact must be unique and non-overlapping both semantically and wording.
+        g. Atomic Concepts: Each fact must contain only ONE medical concept.
+        h. No Complex Claims: Split compound sentences containing "AND/OR".
+   - If a modifier is missing (e.g., Claim says "Take drug" but Sentence says "Take drug with food"), create a specific fact for the missing part (e.g., "Take drug with food" or "Instruction is to take with food").
 
 ---
-REASONING PROCESS:
-Step 1: Analyze the Error: Identify clearly what makes the claim invalid based on the label.
-Step 2: Locate Source Info: Find the missing context, entity, or modifier in the "Context" or "Original Sentence".
-Step 3: Draft Repair: Apply the specific Fix Strategy.
-Step 4: Final Check: Ensure the new claim is now Valid (Standalone, Declarative, Complete) and does not hallucinate new info.
+REASONING CHAIN OF THOUGHT:
+Step 1: AUDIT (Compare Sentence vs. Claims)
+- Read the Sentence. Check off every piece of information that is already fully covered by the Current Claims.
+- What is left over? (The Residuals).
+
+Step 2: IDENTIFY GAPS
+- Is there a missing measurement? (e.g., "500mg")
+- Is there a missing condition? (e.g., "if fever occurs")
+- Is there a missing item from a list? (e.g., "A, B, and C" - but Claims only have A and B).
+
+Step 3: FORMULATE (Create New Facts)
+- Turn the missing details into standalone declarative sentences.
+- Resolve any pronouns using the Context.
+
+Step 4: VERIFY
+- Ensure the new facts are NOT redundant with the Current Claims.
+- Ensure the new facts are grounded in the Sentence (No hallucinations).
 
 ---
 FEW-SHOT EXAMPLES:
 
-Example 1: Repairing "Context-dependent"
-Context: "Metformin is the first-line treatment for type 2 diabetes. However, it often causes gastrointestinal issues."
-Original Sentence: "However, it often causes gastrointestinal issues."
-Invalid Claim: "It often causes gastrointestinal issues."
-Error Label: Context-dependent
+Example 1 (Missing Condition & Measurement):
+Context: Patient prescribed Amoxicillin.
+Sentence: Take Amoxicillin 500mg every 8 hours if symptoms persist.
+Current Claims:
+- Patient takes Amoxicillin.
+- Frequency is every 8 hours.
 Reasoning:
-Step 1: Analyze the Error: The claim uses "It", which is vague.
-Step 2: Locate Source Info: In the context, "It" refers to "Metformin".
-Step 3: Draft Repair: Replace "It" with "Metformin".
-Step 4: Final Check: "Metformin often causes gastrointestinal issues." is valid.
-Normalized Claim: Metformin often causes gastrointestinal issues.
+Step 1: AUDIT. "Amoxicillin" is covered. "Every 8 hours" is covered.
+Step 2: GAPS. "500mg" is missing. "if symptoms persist" is missing.
+Step 3: FORMULATE.
+  - Gap 1: Dosage is 500mg.
+  - Gap 2: Take if symptoms persist.
+Facts:
+- Amoxicillin dosage is 500mg.
+- Take Amoxicillin if symptoms persist.
 
-Example 2: Repairing "Context-dependent" (Possessive Adjective + The first person)
-Context: "I was prescribed Lisinopril for hypertension. My blood pressure improved significantly."
-Original Sentence: "My blood pressure improved significantly."
-Invalid Claim: "My blood pressure improved significantly."
-Error Label: Context-dependent
+Example 2 (Missing Item in List):
+Context: Reviewing symptoms.
+Sentence: Patient reports cough, fever, and shortness of breath.
+Current Claims:
+- Patient reports cough.
+- Patient reports fever.
 Reasoning:
-Step 1: Analyze the Error: The claim uses "My", which is first-person possessive.
-Step 2: Locate Source Info: "My" refers to the patient's blood pressure.
-Step 3: Draft Repair: Replace "My" with "The patient's".
-Step 4: Final Check: "The patient's blood pressure improved significantly." is valid.
-Normalized Claim: The patient's blood pressure improved significantly.
+Step 1: AUDIT. Cough covered. Fever covered.
+Step 2: GAPS. "Shortness of breath" is completely missing.
+Step 3: FORMULATE. Patient reports shortness of breath.
+Facts:
+- Patient reports shortness of breath.
 
-Example 3: Repairing "Incorrectly structured" (Imperative)
-Context: "Managing acid reflux involves lifestyle changes. Avoid eating heavy meals right before bedtime."
-Original Sentence: "Avoid eating heavy meals right before bedtime."
-Invalid Claim: "Avoid eating heavy meals right before bedtime."
-Error Label: Incorrectly structured
+Example 3 (Full Coverage - No Gaps):
+Context: Diabetes management.
+Sentence: Metformin helps control blood sugar.
+Current Claims:
+- Metformin helps control blood sugar.
 Reasoning:
-Step 1: Analyze the Error: The claim is an imperative command ("Avoid...").
-Step 2: Locate Source Info: The context implies this is advice for managing acid reflux.
-Step 3: Draft Repair: Convert to declarative advice. "Patients should avoid eating..."
-Step 4: Final Check: The sentence is now a declarative statement.
-Normalized Claim: Patients should avoid eating heavy meals right before bedtime.
+Step 1: AUDIT. All concepts covered.
+Step 2: GAPS. None.
+Facts:
+- No missing claim
 
-Example 4: Repairing "Incorrectly structured" (Reporting Frame)
-Context: "A recent study verified the effects of the drug. The study shows that Ibuprofen reduces inflammation."
-Original Sentence: "The study shows that Ibuprofen reduces inflammation."
-Invalid Claim: "The study shows that Ibuprofen reduces inflammation."
-Error Label: Incorrectly structured
+Example 4 (Missing Negation - Critical):
+Context: Chest exam.
+Sentence: Patient denies chest pain.
+Current Claims:
+- Patient discusses chest pain.
 Reasoning:
-Step 1: Analyze the Error: The claim includes the frame "The study shows that".
-Step 2: Locate Source Info: Core fact is "Ibuprofen reduces inflammation".
-Step 3: Draft Repair: Remove the frame.
-Step 4: Final Check: The core fact is preserved.
-Normalized Claim: Ibuprofen reduces inflammation.
-
-Example 5: Repairing "Incomplete" (Missing Condition)
-Context: "Dosing instructions for Amoxicillin. If you have kidney disease, the dosage requires adjustment."
-Original Sentence: "If you have kidney disease, the dosage requires adjustment."
-Invalid Claim: "The dosage requires adjustment."
-Error Label: Incomplete
-Reasoning:
-Step 1: Analyze the Error: The claim states dosage adjustment is needed but misses the condition "If you have kidney disease". This makes the advice dangerous/incorrect generally.
-Step 2: Locate Source Info: The condition "If you have kidney disease" is in the Original Sentence.
-Step 3: Draft Repair: Re-attach the condition.
-Step 4: Final Check: The claim now accurately reflects the medical condition.
-Normalized Claim: The dosage of Amoxicillin requires adjustment if the patient has kidney disease.
-
-Example 6: Repairing "Incomplete" (Missing Modifier)
-Context: "Anabolic steroids may have positive effects on muscle health, but they also carry significant risks."
-Original Sentence: "Anabolic steroids may have positive effects on muscle health, but they also carry significant risks."
-Invalid Claim: "Anabolic steroids have positive effects on muscle health."
-Error Label: Incomplete
-Reasoning:
-Step 1: Analyze the Error: The claim drops the critical modifier "may", changing the meaning.
-Step 2: Locate Source Info: The modifier "may" is present in the Original Sentence.
-Step 3: Draft Repair: Re-attach the modifier "may".
-Step 4: Final Check: The claim is now complete and accurate.
-Normalized Claim: Anabolic steroids may have positive effects on muscle health.
-
----
-OUTPUT FORMAT:
-Reasoning:
-Step 1: Analyze the Error: [Step 1 reasoning]
-Step 2: Locate Source Info: [Step 2 reasoning]
-Step 3: Draft Repair: [Step 3 reasoning]
-Step 4: Final Check: [Step 4 reasoning]
-Normalized Claim: (Your repaired atomic claim)
+Step 1: AUDIT. "Discusses" does not capture the negation "denies". This is a critical gap.
+Step 2: GAPS. The negation is missing/incorrect.
+Step 3: FORMULATE. Patient denies chest pain.
+Facts:
+- Patient denies chest pain.
 
 ---
 YOUR TASK:
 
 Context: {context}
-Original Sentence: {sentence}
-Invalid Claim: {claim}
-Error Label: {error_label}
 
-Output ONLY the Reasoning and the Final Normalized Claim.
-"""
+Sentence: {sentence}
+
+Current Claims:
+{formatted_current_claims}
+
+Facts (New Recovery Claims Only):"""
     return prompt
 
 
@@ -150,7 +130,7 @@ print('Sentence:', sentence)
 print('Claim:', claim)
 print('Error Label:', error_label)
 
-content = format_normalization_input(context=context, sentence=sentence, claim=claim, error_label=error_label)
+content = residual_extraction(context=context, sentence=sentence, claim=claim, error_label=error_label)
 print(content)
 
 result = ollama.chat(
