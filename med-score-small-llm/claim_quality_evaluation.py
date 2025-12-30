@@ -83,8 +83,38 @@ class ClaimQualityEvaluation(object):
                 # Step 3: Normalize invalid claims
                 normalized_claims = self._normalize_invalid_claims(claims)
 
-                # Step 4: Re-classify normalized claims
-                reclassified_claims = self.classify_claim_quality(normalized_claims)
+                # Step 4: Re-classify only normalized claims
+                # Separate normalized claims (those with 'normalized_from') from others
+                claims_to_reclassify = [c for c in normalized_claims if 'normalized_from' in c]
+                unchanged_claims = [c for c in normalized_claims if 'normalized_from' not in c]
+                
+                if claims_to_reclassify:
+                    # Store original claim info for unchanged claims using (claim_id, claim_text) as key
+                    unchanged_original_info = {}
+                    for c in unchanged_claims:
+                        key = (c.get('claim_id'), c.get('claim', ''))
+                        unchanged_original_info[key] = {
+                            'claim_quality_type': c.get('claim_quality_type'),
+                            'raw_claim_quality_response': c.get('raw_claim_quality_response', '')
+                        }
+                    
+                    # Re-classify all claims together (to get correct other_claims context)
+                    # but we'll only use results for normalized claims
+                    all_reclassified = self.classify_claim_quality(normalized_claims)
+                    
+                    # Restore original claim_quality_type for unchanged claims
+                    for claim in all_reclassified:
+                        key = (claim.get('claim_id'), claim.get('claim', ''))
+                        if key in unchanged_original_info:
+                            # This is an unchanged claim, restore its original info
+                            original_info = unchanged_original_info[key]
+                            claim['claim_quality_type'] = original_info['claim_quality_type']
+                            claim['raw_claim_quality_response'] = original_info['raw_claim_quality_response']
+                    
+                    reclassified_claims = all_reclassified
+                else:
+                    # No claims were normalized, keep all as-is
+                    reclassified_claims = normalized_claims
 
                 # Step 5: Filter to get only Valid claims
                 valid_claims = [c for c in reclassified_claims if c.get('claim_quality_type') == 'Valid']
