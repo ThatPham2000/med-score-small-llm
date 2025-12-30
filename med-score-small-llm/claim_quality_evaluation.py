@@ -691,13 +691,15 @@ Output ONLY the Reasoning and the Final Normalized Claim.
         return None
 
     def _check_coverage(self, context: str, sentence: str, current_claims: List[str]) -> Dict[str, Any]:
-        """Check if current claims fully cover the original sentence."""
-        if not current_claims:
-            return {
-                'coverage_status': 'MISSING',
-                'missing_details': ['No valid claims extracted from sentence.']
-            }
-
+        """Check if current claims fully cover the original sentence.
+        
+        Note: If current_claims is empty, we still check coverage because the sentence
+        might be Unverifiable (e.g., "I spoke to your doctor"), in which case empty claims
+        is acceptable and coverage should be FULL.
+        """
+        # Even if current_claims is empty, we still check coverage
+        # because the sentence might be Unverifiable (personal narratives, empathy)
+        # which doesn't need claims, so coverage would be FULL
         prompt = format_coverage(context, sentence, current_claims)
         messages = [[{"role": "user", "content": prompt}]]
 
