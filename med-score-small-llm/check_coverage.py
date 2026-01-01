@@ -13,51 +13,35 @@ INPUT DATA
 
 ---
 INSTRUCTION
-Compare the "Original Sentence" against the "Current Claims". You must detect if any "Significant Medical Information" is missing.
-
-Definition of "Significant Medical Information":
-- Entities: Names of drugs, diseases, symptoms, body parts, procedures.
-- Measurements: Dosages (mg, ml), Frequencies (twice daily), Durations (for 7 days), Vital signs numbers.
-- Modifiers: Severity (severe, mild), Laterality (left, right), Negation (not, no, denies), Changes (worsening, improving).
-- Conditions/Logic: Dependencies (if, when), Causality (due to), Sequence (before, after).
+Compare the [Original Sentence] against the [Current Claims]. You must detect if any Medical Information is missing.
 
 Rules:
-1. IGNORE wording differences if the meaning is preserved (e.g., "PO" vs "by mouth" is coverage).
+1. IGNORE wording differences if the meaning is preserved (e.g., "PO" vs "by mouth" is ACCEPTABLE).
 2. IGNORE non-medical narrative filler (e.g., "I told the patient", "It is important to note").
-3. REPORT strictly what is missing. If nothing is missing, report coverage as "FULL".
 
 ---
 REASONING PROCESS
-Follow these 4 steps to determine coverage:
+Step 1: CHECK IF CURRENT CLAIMS IS EMPTY
+- If Current Claims is empty ([]):
+    - Is it a personal narrative? (e.g., "I spoke to your doctor", "I told the patient")
+    - Is it patient-specific experience? (e.g., "You are feeling pain")
+    - Is it empathetic/bedside manner? (e.g., "It is understandable", "Your pain can be very tiring")
+- If YES (Unverifiable) -> Coverage: FULL (no medical information to extract, empty claims is correct).
+- If NO (has verifiable medical info) -> Coverage: MISSING (proceed to Step 2 to identify what's missing).
 
-Step 1: ENTITY MAPPING
-- Identify every medical entity in the Sentence.
-- Check: Is this entity present in the Claims?
+Step 2: ENTITY AUDIT
+- Identify every medical entity in the Original Sentence.
+- Verify: Are these entities present in the Current Claims list?
+- If any entities are missing -> [missing entities].
+- If all entities are present -> [].
 
-Step 2: DETAIL CHECK
-- For each entity, checking its attributes in the Sentence vs Claims:
-  - Is the Dosage/Frequency captured?
-  - Is the Negation (not/no) captured?
-  - Is the specific Modifier (Left/Right/Severe) captured?
-- Example: Sentence says "Left knee", Claim says "Knee". -> Gaps found: "Left".
-
-Step 3: LOGIC CHECK
-- Are the connections preserved? (e.g., "A causes B").
-- Are conditions preserved? (e.g., "Take X IF Y happens").
-
-Step 4: LIST MISSING DETAILS
-- Explicitly list out exactly what medical information is found in the Sentence but ABSENT in the Claims.
-- Be specific (e.g., "The dosage '500mg' is missing", "The condition 'if fever occurs' is missing").
-- If nothing is missing, write "None".
-
-Step 5: VERDICT
-- If the list in Step 4 is not empty -> Result: MISSING.
-- If the list in Step 4 is "None" -> Result: FULL.
+Step 3: VERDICT
+- If the list in Step 2 is not empty -> Result: {{"coverage": "MISSING", "missing": [list from Step 2]}}.
+- If the list in Step 2 is empty -> Result: {{"coverage": "FULL", "missing": []}}.
 
 ---
 FEW-SHOT EXAMPLES
-
-Example 1 (Full Coverage):
+Example 1:
 Context: I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
 Original Sentence: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
 Current Claims: [
@@ -67,128 +51,92 @@ Current Claims: [
 "Anabolic steroids carry potential side effects."
 ]
 Reasoning:
-Step 1: ENTITY MAPPING
-- Entities in Sentence: "these substances" (Anabolic steroids), "muscle health", "bone health", "risks", "side effects".
-- Check Claims: "Anabolic steroids" is present in all claims (Correctly resolved from "these substances"). "muscle health" is present in Claim 1. "bone health" is present in Claim 2. "risks" is present in Claim 3. "side effects" is present in Claim 4.
-- Result: All entities mapped.
-Step 2: DETAIL CHECK
-- Check Modifiers/Attributes: "positive effects": Present in Claim 1 & 2. Probability "may have": Present in Claim 1 & 2. "significant" (for risks): Present in Claim 3. "potential" (for side effects): Present in Claim 4.
-- Result: All critical modifiers captured.
-Step 3: LOGIC CHECK
-- The sentence uses a "while... also..." structure to list pros and cons. The claims correctly decompose this into atomic facts without losing the causal link that the steroids cause these effects.
-- Result: Logic preserved.
-Step 4: LIST MISSING DETAILS
-- None
-Step 5: VERDICT
-- List is "None" -> Result: FULL.
+Step 1: CHECK IF CURRENT CLAIMS IS EMPTY
+- Current Claims is not empty. Proceed to Step 2.
+Step 2: ENTITY AUDIT
+- Entities in Original Sentence: "these substances" (Anabolic steroids), "muscle health", "bone health", "risks", "side effects".
+- Verify presence in Current Claims: "Anabolic steroids" is present in all claims. "muscle health" found in claim 1. "bone health" found in claim 2. "risks" found in claim 3. "side effects" found in claim 4.
+- All entities are present. Missing entities: [].
+Step 3: VERDICT
+- The list in Step 2 is empty. -> Result: {{"coverage": "FULL", "missing": []}}.
 Output:
-{
-  "coverage_status": "FULL",
-  "missing_details": []
-}
+{{
+    "coverage": "FULL",
+    "missing": []
+}}
 
-Example 2 (missing modifier):
+Example 2:
 Context: I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
 Original Sentence: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
 Current Claims: [
-"Anabolic steroids have effects on muscle health.",
-"Anabolic steroids have effects on bone health.",
-"Anabolic steroids carry risks.",
-"Anabolic steroids have side effects."
+"Anabolic steroids may have positive effects on muscle health.",
+"Anabolic steroids carry significant risks.",
 ]
 Reasoning:
-Step 1: ENTITY MAPPING
-- Entities in Sentence: "these substances" (Anabolic steroids), "muscle health", "bone health", "risks", "side effects".
-- Check Claims: "Anabolic steroids" is present in all claims (Correctly resolved from "these substances"). "muscle health" is present in Claim 1. "bone health" is present in Claim 2. "risks" is present in Claim 3. "side effects" is present in Claim 4.
-- Result: All entities mapped.
-Step 2: DETAIL CHECK
-- Check Modifiers/Attributes: "positive effects": MISSING (Claim 1 only says "have effects").
-- Result: All critical modifiers captured.
-Step 3: LOGIC CHECK
-- The sentence uses a "while... also..." structure to list pros and cons. The claims correctly decompose this into atomic facts without losing the causal link that the steroids cause these effects.
-- Result: Logic preserved.
-Step 4: LIST MISSING DETAILS
-- None
-Step 5: VERDICT
-- List is "None" -> Result: FULL.
+Step 1: CHECK IF CURRENT CLAIMS IS EMPTY
+- Current Claims is not empty. Proceed to Step 2.
+Step 2: ENTITY AUDIT
+- Entities in Original Sentence: "these substances" (Anabolic steroids), "muscle health", "bone health", "risks", "side effects".
+- Verify presence in Current Claims: "Anabolic steroids" (Present). "muscle health" (Present). "risks" (Present). "bone health" (MISSING). "side effects" (MISSING).
+- Missing entities: ["bone health", "side effects"].
+Step 3: VERDICT
+The list in Step 2 is not empty -> Result: {{"coverage": "MISSING", "missing": ["bone health", "side effects"]}}.
 Output:
-{
-  "coverage_status": "FULL",
-  "missing_details": []
-}
+{{
+    "coverage": "MISSING",
+    "missing": ["bone health", "side effects"]
+}}
 
-
-
-
-
-
-
-
-
-
-Example 2 (Missing Measurement):
-Context: Post-op care.
-Original Sentence: "Keep the wound dry and change the dressing twice daily."
-Current Claims:
-- "Keep the wound dry."
-- "Change the dressing."
+Example 3:
+Context: I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+Original Sentence: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+Current Claims: []
 Reasoning:
-- Entities: Wound, Dressing.
-- Details: "Dry" (Found). "Twice daily" (MISSING in claims).
-- Verdict: Frequency of dressing change is omitted.
+Step 1: CHECK IF CURRENT CLAIMS IS EMPTY
+- Current Claims is empty.
+- Is it a personal narrative? NO.
+- Is it patient-specific experience? NO.
+- Is it empathetic/bedside manner? NO.
+- Result: NO (It has verifiable medical info).
+- Coverage: MISSING. Proceed to Step 2 to identify what's missing.
+Step 2: ENTITY AUDIT
+- Entities in Original Sentence: "these substances" (Anabolic steroids), "muscle health", "bone health", "risks", "side effects".
+- Verify presence in Current Claims: Current Claims is empty, so all entities are missing.
+- Missing entities: ["muscle health", "bone health", "risks", "side effects"].
+Step 3: VERDICT
+The list in Step 2 is not empty -> Result: {{"coverage": "MISSING", "missing": ["muscle health", "bone health", "risks", "side effects"]}}.
 Output:
-{
-  "coverage_status": "MISSING",
-  "missing_details": ["Frequency 'twice daily' for changing dressing is missing."]
-}
+{{
+    "coverage": "MISSING",
+    "missing": ["muscle health", "bone health", "risks", "side effects"]
+}}
 
-Example 3 (Missing Condition):
-Context: Hypertension management.
-Original Sentence: "Call 911 immediately if you experience severe chest pain or shortness of breath."
-Current Claims:
-- "Call 911 immediately."
-- "Patient might experience chest pain."
-- "Patient might experience shortness of breath."
+Example 4:
+Context: I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit.
+Sentence: I spoke to your doctor and they wanted to address your concerns about tetanus.
+Current Claims: []
 Reasoning:
-- Entities: 911, Chest pain, Shortness of breath.
-- Logic: The sentence is a conditional instruction ("IF you experience"). The claims state the symptoms as possibilities but miss the *condition* triggering the call.
-- Details: "Severe" modifier for chest pain is missing.
-- Verdict: The conditional logic and severity modifier are missing.
+Step 1: CHECK IF CURRENT CLAIMS IS EMPTY
+- Current Claims is empty.
+- Is it a personal narrative? YES ("I spoke to your doctor").
+- Result: YES (Unverifiable) -> Coverage: FULL (no medical information to extract, empty claims is correct).
 Output:
-{
-  "coverage_status": "MISSING",
-  "missing_details": [
-    "The condition 'if you experience...' linking symptoms to calling 911 is missing.",
-    "The modifier 'severe' for chest pain is missing."
-  ]
-}
-
-Example 4 (Missing Item in List):
-Context: Allergies.
-Original Sentence: "Patient is allergic to Penicillin, Sulfa drugs, and Latex."
-Current Claims:
-- "Patient is allergic to Penicillin."
-- "Patient is allergic to Latex."
-Reasoning:
-- Entities: Penicillin (Found), Latex (Found), Sulfa drugs (MISSING).
-- Verdict: One item from the allergy list is omitted.
-Output:
-{
-  "coverage_status": "MISSING",
-  "missing_details": ["Allergy to 'Sulfa drugs' is missing."]
-}
+{{
+    "coverage": "FULL",
+    "missing": []
+}}
 
 ---
 OUTPUT FORMAT:
 Reasoning:
 Step 1: [Step 1 reasoning]
 Step 2: [Step 2 reasoning]
-...
+Step 3: [Step 3 reasoning]
 Output:
-{
-  "coverage_status": "FULL" | "MISSING",
-  "missing_details": ["Description of missing item 1", "Description of missing item 2"]
-}
+{{
+    "coverage": "FULL" or "MISSING",
+    "missing": [list of missing medical information, if any]
+}}
 
 ---
 YOUR TASK
@@ -202,15 +150,13 @@ Output:"""
 
 import ollama
 
-
-
-context = """I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."""
-sentence = """The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."""
+context = """I spoke to your doctor and they wanted to address your concerns about your irregular periods and extreme pain. They believe that your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods."""
+sentence = """They believe that your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods."""
 claims = [
-"Anabolic steroids may have positive effects on muscle health.",
-"Anabolic steroids may have positive effects on bone health.",
-"Anabolic steroids carry significant risks.",
-"Anabolic steroids carry potential side effects."
+    "Irregular periods and extreme pain could be related to anovulatory cycles.",
+    "Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle.",
+    "Irregular periods and extreme pain could be related to primary dysmenorrhea."
+    "Primary dysmenorrhea is a condition that causes painful periods."
 ]
 
 content = format_coverage(context=context, sentence=sentence, current_claims=claims)
@@ -229,5 +175,5 @@ result = ollama.chat(
 
 print(result)
 with open('test_coverage_output.jsonl', 'w') as f:
-    f.write(json.dumps({"context": context, "sentence": sentence, "claim": claim, "error_label": error_label,
+    f.write(json.dumps({"context": context, "sentence": sentence, "claims": claims,
                         "response": result.message.content}) + '\n')
