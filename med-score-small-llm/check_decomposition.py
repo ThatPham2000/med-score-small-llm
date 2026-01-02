@@ -131,6 +131,8 @@ Step 3: [Step 3 reasoning]
 Step 4: [Step 4 reasoning]
 Step 5: [Step 5 reasoning]
 Step 6: [Step 6 reasoning]
+Step 7: [Step 7 reasoning]
+Step 8: [Step 8 reasoning]
 Facts:
 - [Fact 1]
 - [Fact 2]
