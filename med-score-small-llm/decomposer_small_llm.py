@@ -151,9 +151,9 @@ Facts:
 
 ---
 YOUR TASK:
-Context: {context}
+Context: "{context}"
 
-Sentence: {sentence}
+Sentence: "{sentence}"
 
 Facts:"""
         return prompt
