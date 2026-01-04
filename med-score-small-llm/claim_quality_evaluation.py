@@ -20,7 +20,7 @@ class ClaimQualityEvaluation(object):
             batch_size: int = 32,
     ):
         self.llm = llm
-        self.llm.max_tokens = 4096
+        self.llm.max_tokens = 10240
         self.random_state = random_state
         self.batch_size = batch_size
         self.decomposition_llm_model = llm.model_name
@@ -37,16 +37,16 @@ class ClaimQualityEvaluation(object):
         5. Filter: Keep only Valid claims
         
         Args:
-            decompositions: List of atomic claims (already decomposed) with 'id', 'sentence', 'claim', 'context', etc.
+            decompositions: List of atomic claims (already decomposed) with 'id', 'sentence_id', 'sentence', 'claim_id', 'claim' fields.
         
         Returns:
             List of claim dictionaries with quality evaluation information.
         """
         # Step 2: Initial Classification
-        all_claims = self.classify_claims(decompositions)
+        classified_claims = self.classify_claims(decompositions)
 
         # Group claims by (id, sentence) for processing
-        claims_by_sentence = self._group_claims_by_sentence(all_claims)
+        claims_by_sentence = self._group_claims_by_sentence(classified_claims)
 
         # Process each sentence group
         final_claims = []
@@ -96,7 +96,7 @@ class ClaimQualityEvaluation(object):
 
         all_completions = []
         n_iter = len(messages) // self.batch_size
-        for batch in tqdm(chunker(messages, self.batch_size), desc="Claim quality evaluation process", total=n_iter):
+        for batch in tqdm(chunker(messages, self.batch_size), desc="Classify claims process", total=n_iter):
             completions = asyncio.run(self.llm.batch_response(batch))
             all_completions.extend(completions)
 
@@ -128,9 +128,7 @@ class ClaimQualityEvaluation(object):
         # Try to find the classification label after "Classification:"
         classification_patterns = [
             "Classification:",
-            "classification:",
-            "Classification :",
-            "classification :"
+            "**Classification:**"
         ]
 
         classification_label = None
