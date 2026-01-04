@@ -78,16 +78,16 @@ Step 8: Coverage Check
 FEW-SHOT EXAMPLES:
 
 Example 1:
-Context: I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit.
-Sentence: I spoke to your doctor and they wanted to address your concerns about tetanus.
+Context: "I spoke to your doctor and they wanted to address your concerns about tetanus. Since you've had your primary tetanus shots as a child, you don't need immunoglobulin (IGG) shots, and they were actually unnecessary during your last visit."
+Sentence: "I spoke to your doctor and they wanted to address your concerns about tetanus."
 Reasoning:
 Step 1: TRIAGE (Filter Narratives): The sentence "I spoke to your doctor..." describes a personal interaction. This is an unverifiable narrative. The process stops here.
 Facts:
 - No verifiable claim
 
 Example 2:
-Context: I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
-Sentence: The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects.
+Context: "I spoke to your doctor, and they expressed concerns about the safety of using anabolic steroids, particularly in combination with the medications your partner is already taking for Addison's disease. The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
+Sentence: "The doctor noted that while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
 Reasoning:
 Step 1: TRIAGE (Filter Narratives): It does not include event narratives or present for patient-empathy, and it contains verifiable medical content, so we proceed to Step 2.
 Step 2: ISOLATE & FORMAT (Structure Check): I am removing the reporting frame "The doctor noted that". The core medical content is: "while these substances may have positive effects on muscle and bone health, they also carry significant risks and potential side effects."
@@ -110,8 +110,8 @@ Facts:
 - Anabolic steroids carry potential side effects.
 
 Example 3:
-Context: I spoke to your doctor and they wanted to address your concerns about your irregular periods and extreme pain. They believe that your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods.
-Sentence: They believe that your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods.
+Context: "I spoke to your doctor and they wanted to address your concerns about your irregular periods and extreme pain. They believe that your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods."
+Sentence: "They believe that your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods."
 Reasoning:
 Step 1: TRIAGE (Filter Narratives): It does not include event narratives or present for patient-empathy, and it contains verifiable medical content, so we proceed to Step 2.
 Step 2: ISOLATE & FORMAT (Structure Check): I am removing the reporting frame "They believe that". The core medical content is: "your symptoms could be related to anovulatory cycles, which means that your body is not releasing an egg during your menstrual cycle, and primary dysmenorrhea, which is a condition that causes painful periods."
