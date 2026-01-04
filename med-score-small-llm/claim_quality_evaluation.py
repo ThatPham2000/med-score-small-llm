@@ -55,14 +55,15 @@ class ClaimQualityEvaluation(object):
                 continue
 
             # Step 3: Normalize invalid claims
-            normalized_claims = self._normalize_invalid_claims(claims)
+            normalized_claims = self.normalize_invalid_claims(claims)
 
             # Step 4: Re-classify normalized claims
             reclassified_claims = self.classify_claims(normalized_claims)
 
             # Step 5: Filter to get only Valid claims
-            valid_claims = [c for c in reclassified_claims if c.get('claim_quality_type') == 'Valid']
-            final_claims.extend(valid_claims)
+            # valid_claims = [c for c in reclassified_claims if c.get('claim_quality_type') == 'Valid']
+
+            final_claims.extend(reclassified_claims)
 
         return final_claims
 
@@ -543,7 +544,7 @@ Output ONLY the Reasoning and the Final Normalized Claim.
             grouped[key].append(claim)
         return grouped
 
-    def _normalize_invalid_claims(self, claims: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def normalize_invalid_claims(self, claims: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Normalize claims that are Context-dependent, Incorrectly structured, or Incomplete."""
         normalized_claims = []
         normalizable_types = ['Context-dependent', 'Incorrectly structured', 'Incomplete']
@@ -574,13 +575,13 @@ Output ONLY the Reasoning and the Final Normalized Claim.
         # Batch normalize
         all_completions = []
         n_iter = len(messages) // self.batch_size + (1 if len(messages) % self.batch_size else 0)
-        for batch in tqdm(chunker(messages, self.batch_size), desc="Normalizing claims", total=n_iter):
+        for batch in tqdm(chunker(messages, self.batch_size), desc="Normalizing claims process", total=n_iter):
             completions = asyncio.run(self.llm.batch_response(batch))
             all_completions.extend(completions)
 
         # Parse normalized claims
         for claim, completion in zip(claims_to_normalize, self.llm.normalize_llm_response(all_completions)):
-            normalized_text = self._parse_normalized_claim(completion)
+            normalized_text = self.parse_normalized_claim(completion)
             if normalized_text:
                 new_claim = {k: v for k, v in claim.items()}
                 new_claim['claim'] = normalized_text
@@ -593,7 +594,7 @@ Output ONLY the Reasoning and the Final Normalized Claim.
 
         return normalized_claims
 
-    def _parse_normalized_claim(self, completion: str) -> Optional[str]:
+    def parse_normalized_claim(self, completion: str) -> Optional[str]:
         """Extract normalized claim from LLM response."""
         completion = completion.strip()
 
