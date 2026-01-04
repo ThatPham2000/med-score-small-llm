@@ -49,7 +49,7 @@ class ClaimQualityEvaluation(object):
             List of claim dictionaries with quality evaluation information.
         """
         # Step 2: Initial Classification
-        all_claims = self.classify_claim_quality(decompositions)
+        all_claims = self.classify_claims(decompositions)
 
         if not ensure_coverage:
             return all_claims
@@ -83,7 +83,7 @@ class ClaimQualityEvaluation(object):
                 normalized_claims = self._normalize_invalid_claims(claims)
 
                 # Step 4: Re-classify normalized claims
-                reclassified_claims = self.classify_claim_quality(normalized_claims)
+                reclassified_claims = self.classify_claims(normalized_claims)
 
                 # Step 5: Filter to get only Valid claims
                 valid_claims = [c for c in reclassified_claims if c.get('claim_quality_type') == 'Valid']
@@ -94,7 +94,7 @@ class ClaimQualityEvaluation(object):
 
                 # Step 6: Extract residuals
                 residual_claims = self._extract_residuals(context, sentence, valid_claim_texts, response_id)
-                
+
                 if residual_claims:
                     # Add residuals to be processed in next iteration
                     new_residuals.extend([(response_id, sentence, rc) for rc in residual_claims])
@@ -123,7 +123,8 @@ class ClaimQualityEvaluation(object):
 
         return final_claims
 
-    def classify_claim_quality(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def classify_claims(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        self.llm.model_name = 'gpt-oss:20b'
         # Group decompositions by id (same response)
         decompositions_by_id = {}
         for d in decompositions:
@@ -164,6 +165,8 @@ class ClaimQualityEvaluation(object):
             output["raw_claim_quality_response"] = raw_output
             output["claim_quality_type"] = claim_quality_type
             claim_quality_output.append(output)
+
+        self.llm.model_name = self.decomposition_llm_model
         return claim_quality_output
 
     def parse_claim_quality_output(self, completion_message: str) -> str:
@@ -737,6 +740,8 @@ Output ONLY the Reasoning and the Final Normalized Claim.
     def _extract_residuals(self, context: str, sentence: str, current_claims: List[str], response_id: str) -> List[
         Dict[str, Any]]:
         """Extract residual claims that are missing from current claims."""
+        self.llm.model_name = 'gpt-oss:20b'
+
         prompt = format_residual_extraction(context, sentence, current_claims)
         messages = [[{"role": "user", "content": prompt}]]
 
@@ -744,6 +749,8 @@ Output ONLY the Reasoning and the Final Normalized Claim.
         response = self.llm.normalize_llm_response(completions)[0]
 
         residual_claims = self._parse_residual_claims(response, context, sentence, response_id)
+
+        self.llm.model_name = self.decomposition_llm_model
         return residual_claims
 
     def _parse_residual_claims(self, completion: str, context: str, sentence: str, response_id: str) -> List[
