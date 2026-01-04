@@ -66,19 +66,19 @@ Step 7: CHECK REDUNDANT CLAIMS
 Step 8: COVERAGE CHECK
 - Final Audit: Do the final list of atomic facts capture 100% of the medical info from the original [Sentence]?
 
-Step 9: ALL CLAIMS GENERATION
+Step 9: EXTRACTED LIST (Freshly generated)
 - List ALL atomic facts extracted from Steps 1-8. Do not filter yet.
 
-Step 10: RESIDUAL FILTERING
-- Iterate through each claim in [Step 9 List] and compare it against [Current Claims].
-- For each claim, explicitly state:
-  1. The Extracted Claim.
-  2. The Status (MATCH or NO MATCH).
-  3. The Action (DISCARD or KEEP).
-- Logic:
-  - If the Extracted Claim is semantically identical, a subset, or a duplicate of any claim in [Current Claims] -> Status: MATCH -> Action: DISCARD.
-  - If the Extracted Claim contains new info, modifiers, or conditions NOT present in [Current Claims] (still grounded in the Sentence) -> Status: NO MATCH -> Action: KEEP.
-- Final Result: Compile the list of KEPT claims. If none remain, output "No verifiable residual claim".
+Step 10: REFERENCE LIST (Current Claims)
+- Copy the provided [Current Claims] list here for exactly as given.
+
+Step 11: RESIDUAL FILTERING (Item-by-Item Comparison)
+- Iterate through EACH claim in the [Extracted List] and check if it exists in the [Reference List].
+- You must output the comparison logic for EVERY claim using this format:
+  - Claim: [Text of the extracted claim]
+  - Check: Is this meaning present in the Reference List? [YES/NO]
+  - Action: [DISCARD/KEEP]
+- Final Rule: Only KEEP claims where the Check is NO. If no claims are kept, output "No residual verifiable claim".
 
 ---
 FEW-SHOT EXAMPLES:
@@ -116,17 +116,21 @@ Step 7: Check Redundant Claims: I am checking for redundancies.
 - The facts are derived from splitting lists (muscle/bone and risks/side effects).
 - According to Rule 2 (Split Exception), these are distinct concepts sharing a subject/verb, so I will keep all of them. None are subsets of each other.
 Step 8: Coverage Check: I have captured all four key concepts: muscle health, bone health, risks, and side effects. Coverage is complete.
-Step 9: ALL CLAIMS GENERATION:
-1. Anabolic steroids may have positive effects on muscle health.
-2. Anabolic steroids may have positive effects on bone health.
-3. Anabolic steroids carry significant risks.
-4. Anabolic steroids carry potential side effects.
-Step 10: RESIDUAL FILTERING
-1. "Anabolic steroids may have positive effects on muscle health." vs Current Claims ([ "Anabolic steroids may have positive effects on muscle health.", "Anabolic steroids may have positive effects on bone health.", "Anabolic steroids carry significant risks.", "Anabolic steroids carry potential side effects." ]) -> Status: MATCH -> Action: DISCARD.
-2. "Anabolic steroids may have positive effects on bone health." vs Current Claims ([ "Anabolic steroids may have positive effects on muscle health.", "Anabolic steroids may have positive effects on bone health.", "Anabolic steroids carry significant risks.", "Anabolic steroids carry potential side effects." ]) -> Status: MATCH -> Action: DISCARD.
-3. "Anabolic steroids carry significant risks." vs Current Claims ([ "Anabolic steroids may have positive effects on muscle health.", "Anabolic steroids may have positive effects on bone health.", "Anabolic steroids carry significant risks.", "Anabolic steroids carry potential side effects." ]) -> Status: MATCH -> Action: DISCARD.
-4. "Anabolic steroids carry potential side effects." vs Current Claims ([ "Anabolic steroids may have positive effects on muscle health.", "Anabolic steroids may have positive effects on bone health.", "Anabolic steroids carry significant risks.", "Anabolic steroids carry potential side effects." ]) -> Status: MATCH -> Action: DISCARD.
-Final Result: List is empty.
+Step 9: EXTRACTED LIST
+1. "Anabolic steroids may have positive effects on muscle health."
+2. "Anabolic steroids may have positive effects on bone health."
+3. "Anabolic steroids carry significant risks."
+4. "Anabolic steroids carry potential side effects."
+Step 10: REFERENCE LIST
+1. "Anabolic steroids may have positive effects on muscle health."
+2. "Anabolic steroids may have positive effects on bone health."
+3. "Anabolic steroids carry significant risks."
+4. "Anabolic steroids carry potential side effects."
+Step 11: RESIDUAL FILTERING
+- Claim: Anabolic steroids may have positive effects on muscle health. Check: YES (Exact match found). Action: DISCARD
+- Claim: Anabolic steroids may have positive effects on bone health. Check: YES (Exact match found). Action: DISCARD
+- Claim: Anabolic steroids carry significant risks. Check: YES (Exact match found). Action: DISCARD
+- Claim: Anabolic steroids carry potential side effects. Check: YES (Exact match found). Action: DISCARD
 Facts:
 - No verifiable residual claim
 
@@ -136,7 +140,7 @@ Sentence: They believe that your symptoms could be related to anovulatory cycles
 Current Claims: [
 "Irregular periods and extreme pain could be related to anovulatory cycles.",
 "Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle.",
-"Irregular periods and extreme pain could be related to primary dysmenorrhea."
+"Primary dysmenorrhea is a condition that causes painful periods."
 ]
 Reasoning:
 Step 1: TRIAGE (Filter Narratives): It does not include event narratives or present for patient-empathy, and it contains verifiable medical content, so we proceed to Step 2.
@@ -153,19 +157,22 @@ Step 5: Check Incomplete Claims: Preserve the modifier "could be related to" for
 Step 6: Check Hallucinations: No outside information added. All definitions are strictly from the text.
 Step 7: Check Redundant Claims: Check Redundancy: The claims regarding anovulatory cycles and primary dysmenorrhea are distinct (Split Exception applies). The definitions are distinct. No subsets found.
 Step 8: Coverage Check: All concepts (symptoms, two potential causes, two definitions) are captured.
-Step 9: ALL CLAIMS GENERATION:
-1. Irregular periods and extreme pain could be related to anovulatory cycles.
-2. Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle.
-3. Irregular periods and extreme pain could be related to primary dysmenorrhea.
-4. Primary dysmenorrhea is a condition that causes painful periods.
-Step 10: RESIDUAL FILTERING
-1. "Irregular periods and extreme pain could be related to anovulatory cycles." vs Current Claims ([ "Irregular periods and extreme pain could be related to anovulatory cycles.", "Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle.", "Irregular periods and extreme pain could be related to primary dysmenorrhea." ]) -> Status: MATCH -> Action: DISCARD.
-2. "Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle." vs Current Claims ([ "Irregular periods and extreme pain could be related to anovulatory cycles.", "Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle.", "Irregular periods and extreme pain could be related to primary dysmenorrhea." ])-> Status: MATCH -> Action: DISCARD.
-3. "Irregular periods and extreme pain could be related to primary dysmenorrhea." vs Current Claims ([ "Irregular periods and extreme pain could be related to anovulatory cycles.", "Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle.", "Irregular periods and extreme pain could be related to primary dysmenorrhea." ]) -> Status: MATCH -> Action: DISCARD.
-4. "Primary dysmenorrhea is a condition that causes painful periods." vs Current Claims ([ "Irregular periods and extreme pain could be related to anovulatory cycles.", "Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle.", "Irregular periods and extreme pain could be related to primary dysmenorrhea." ]) -> Status: NO MATCH -> Action: KEEP.
-Final Result: Keep claim #4.
+Step 9: EXTRACTED LIST
+1. "Irregular periods and extreme pain could be related to anovulatory cycles."
+2. "Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle."
+3. "Irregular periods and extreme pain could be related to primary dysmenorrhea."
+4. "Primary dysmenorrhea is a condition that causes painful periods."
+Step 10: REFERENCE LIST
+1. "Irregular periods and extreme pain could be related to anovulatory cycles."
+2. "Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle."
+3. "Primary dysmenorrhea is a condition that causes painful periods."
+Step 11: RESIDUAL FILTERING
+- Claim: Irregular periods and extreme pain could be related to anovulatory cycles. Check: YES (Match found). Action: DISCARD
+- Claim: Anovulatory cycles mean that the body is not releasing an egg during the menstrual cycle. Check: YES (Match found). Action: DISCARD
+- Claim: Irregular periods and extreme pain could be related to primary dysmenorrhea. Check: NO (This specific link is missing from the Reference List). Action: KEEP
+- Claim: Primary dysmenorrhea is a condition that causes painful periods. Check: YES (Match found). Action: DISCARD
 Facts:
-- Primary dysmenorrhea is a condition that causes painful periods.
+- Irregular periods and extreme pain could be related to primary dysmenorrhea.
 
 ---
 OUTPUT FORMAT:
@@ -180,6 +187,7 @@ Step 7: [Step 7 reasoning]
 Step 8: [Step 8 reasoning]
 Step 9: [Step 9 reasoning]
 Step 10: [Step 10 reasoning]
+Step 11: [Step 11 reasoning]
 Facts:
 - [Fact 1]
 - [Fact 2]
@@ -210,7 +218,7 @@ content = format_coverage(context=context, sentence=sentence, current_claims=cur
 print(content)
 
 result = ollama.chat(
-    model='llama3.2-vision:11b',
+    model='gpt-oss:20b',
     messages=[{"role": "user", "content": content}],
     options={
         "seed": 42,
