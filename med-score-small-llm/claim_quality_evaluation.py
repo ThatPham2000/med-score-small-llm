@@ -392,9 +392,9 @@ Classification: (Your single-word classification label)
 ---
 YOUR TASK
 
-Context: {context}
-Original Sentence: {sentence}
-Atomic Claim: {claim}
+Context: "{context}"
+Original Sentence: "{sentence}"
+Atomic Claim: "{claim}"
 Other Claims: {formatted_other_claims}"""
         return prompt
 
@@ -523,9 +523,9 @@ Normalized Claim: (Your repaired atomic claim)
 ---
 YOUR TASK:
 
-Context: {context}
-Original Sentence: {sentence}
-Invalid Claim: {claim}
+Context: "{context}"
+Original Sentence: "{sentence}"
+Invalid Claim: "{claim}"
 Error Label: {error_label}
 
 Output ONLY the Reasoning and the Final Normalized Claim.
