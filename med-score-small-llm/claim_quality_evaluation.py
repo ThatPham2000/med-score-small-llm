@@ -6,8 +6,7 @@ from typing import List, Dict, Any, Optional
 import nest_asyncio
 from tqdm import tqdm
 
-from check_coverage import format_coverage
-from check_residual_extraction import residual_extraction
+from check_residual_extraction import format_residual_extraction
 from llm import LLM
 from utils import chunker
 
@@ -25,6 +24,7 @@ class ClaimQualityEvaluation(object):
         self.llm.max_tokens = 4096
         self.random_state = random_state
         self.batch_size = batch_size
+        self.decomposition_llm_model = llm.model_name
 
     def do_claim_quality_evaluation(self, decompositions: List[Dict[str, Any]], ensure_coverage: bool = True,
                                     max_iterations: int = 3) -> List[Dict[str, Any]]:
@@ -37,17 +37,16 @@ class ClaimQualityEvaluation(object):
         3. Normalize: Fix invalid claims (Incomplete, Context-dependent, Incorrectly-Structured)
         4. Classify again: Re-classify normalized claims
         5. Filter: Keep only Valid claims
-        6. Check Coverage: Ensure valid claims cover all medical content
-        7. Extract Residuals: If coverage incomplete, extract missing information
-        8. Iterate: Repeat steps 3-7 until coverage is complete or max_iterations reached
+        6. Extract residuals: Extract missing information from sentence
+        7. Iterate: Repeat steps 3-6 until no new residuals found or max_iterations reached
         
         Args:
             decompositions: List of atomic claims (already decomposed) with 'id', 'sentence', 'claim', 'context', etc.
-            ensure_coverage: If True, iteratively check and ensure coverage. If False, skip coverage checking.
-            max_iterations: Maximum number of iterations for coverage checking loop.
+            ensure_coverage: If True, iteratively extract residuals to ensure coverage. If False, skip residual extraction.
+            max_iterations: Maximum number of iterations for residual extraction loop.
         
         Returns:
-            List of claim dictionaries with quality evaluation and coverage information.
+            List of claim dictionaries with quality evaluation information.
         """
         # Step 2: Initial Classification
         all_claims = self.classify_claim_quality(decompositions)
@@ -55,26 +54,26 @@ class ClaimQualityEvaluation(object):
         if not ensure_coverage:
             return all_claims
 
-        # Group claims by (id, sentence) for coverage checking
+        # Group claims by (id, sentence) for residual extraction
         claims_by_sentence = self._group_claims_by_sentence(all_claims)
 
         # Track which sentences need more iterations
         # {(response_id, sentence), ...}
         sentences_to_process = set(claims_by_sentence.keys())
 
-        # Iterative coverage checking and residual extraction
+        # Iterative residual extraction
         iteration = 0
         while iteration < max_iterations and sentences_to_process:
             iteration += 1
 
             new_residuals = []
-            sentences_with_full_coverage = set()
+            sentences_with_no_residuals = set()
 
             # Process each sentence group
             for (response_id, sentence) in list(sentences_to_process):
                 claims = claims_by_sentence[(response_id, sentence)]
                 if not claims:
-                    sentences_with_full_coverage.add((response_id, sentence))
+                    sentences_with_no_residuals.add((response_id, sentence))
                     continue
 
                 # Get context from first claim (all claims from same sentence share context)
@@ -90,27 +89,19 @@ class ClaimQualityEvaluation(object):
                 valid_claims = [c for c in reclassified_claims if c.get('claim_quality_type') == 'Valid']
                 valid_claim_texts = [c['claim'] for c in valid_claims if c.get('claim')]
 
-                # Step 6: Check coverage
-                coverage_result = self._check_coverage(context, sentence, valid_claim_texts)
-
-                # Update all reclassified claims with coverage information
-                for claim in reclassified_claims:
-                    claim['coverage_status'] = coverage_result.get('coverage_status', 'UNKNOWN')
-                    claim['missing_details'] = coverage_result.get('missing_details', [])
-
                 # Update claims_by_sentence with reclassified claims
                 claims_by_sentence[(response_id, sentence)] = reclassified_claims
 
-                # Step 7: If coverage incomplete, extract residuals
-                if coverage_result.get('coverage_status') == 'MISSING':
-                    residual_claims = self._extract_residuals(context, sentence, valid_claim_texts, response_id)
-                    if residual_claims:
-                        # Add residuals to be processed in next iteration
-                        new_residuals.extend([(response_id, sentence, rc) for rc in residual_claims])
+                # Step 6: Extract residuals
+                residual_claims = self._extract_residuals(context, sentence, valid_claim_texts, response_id)
+                
+                if residual_claims:
+                    # Add residuals to be processed in next iteration
+                    new_residuals.extend([(response_id, sentence, rc) for rc in residual_claims])
                     # Keep this sentence in processing list for next iteration
                 else:
-                    # Coverage is FULL, mark this sentence as done
-                    sentences_with_full_coverage.add((response_id, sentence))
+                    # No residuals found, mark this sentence as done
+                    sentences_with_no_residuals.add((response_id, sentence))
 
             # Add new residuals to claims_by_sentence
             for response_id, sentence, residual_claim in new_residuals:
@@ -118,8 +109,8 @@ class ClaimQualityEvaluation(object):
                     claims_by_sentence[(response_id, sentence)] = []
                 claims_by_sentence[(response_id, sentence)].append(residual_claim)
 
-            # Update sentences to process (remove those with full coverage)
-            sentences_to_process -= sentences_with_full_coverage
+            # Update sentences to process (remove those with no residuals)
+            sentences_to_process -= sentences_with_no_residuals
 
             # If no new residuals found, stop
             if not new_residuals:
@@ -700,7 +691,7 @@ Output ONLY the Reasoning and the Final Normalized Claim.
         # Even if current_claims is empty, we still check coverage
         # because the sentence might be Unverifiable (personal narratives, empathy)
         # which doesn't need claims, so coverage would be FULL
-        prompt = format_coverage(context, sentence, current_claims)
+        prompt = format_residual_extraction(context, sentence, current_claims)
         messages = [[{"role": "user", "content": prompt}]]
 
         completions = asyncio.run(self.llm.batch_response(messages))
@@ -746,7 +737,7 @@ Output ONLY the Reasoning and the Final Normalized Claim.
     def _extract_residuals(self, context: str, sentence: str, current_claims: List[str], response_id: str) -> List[
         Dict[str, Any]]:
         """Extract residual claims that are missing from current claims."""
-        prompt = residual_extraction(context, sentence, current_claims)
+        prompt = format_residual_extraction(context, sentence, current_claims)
         messages = [[{"role": "user", "content": prompt}]]
 
         completions = asyncio.run(self.llm.batch_response(messages))
@@ -760,8 +751,8 @@ Output ONLY the Reasoning and the Final Normalized Claim.
         """Parse residual claims from LLM response."""
         completion = completion.strip()
 
-        # Check if no missing claims
-        if 'no missing claim' in completion.lower() or 'no gaps' in completion.lower():
+        # Check if no residual claims
+        if 'no residual verifiable claim' in completion.lower() or 'no verifiable residual claim' in completion.lower():
             return []
 
         # Extract facts from "Facts:" section
@@ -770,7 +761,7 @@ Output ONLY the Reasoning and the Final Normalized Claim.
         claim_id = 0
 
         for line in completion.split('\n'):
-            if 'facts:' in line.lower() or 'fact:' in line.lower():
+            if 'facts:' in line.lower():
                 facts_started = True
                 continue
 
@@ -778,7 +769,8 @@ Output ONLY the Reasoning and the Final Normalized Claim.
                 # Extract claim from bullet point
                 if line.strip().startswith('- '):
                     claim_text = line.strip()[2:].strip()
-                    if claim_text and 'no missing claim' not in claim_text.lower():
+                    # Skip if it's a "no residual" message
+                    if claim_text and 'no residual' not in claim_text.lower() and 'no verifiable' not in claim_text.lower():
                         residual_claims.append({
                             'id': response_id,
                             'sentence': sentence,
