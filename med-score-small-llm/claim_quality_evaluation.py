@@ -6,7 +6,6 @@ from typing import List, Dict, Any, Optional
 import nest_asyncio
 from tqdm import tqdm
 
-from check_residual_extraction import format_residual_extraction
 from llm import LLM
 from utils import chunker
 
@@ -26,10 +25,9 @@ class ClaimQualityEvaluation(object):
         self.batch_size = batch_size
         self.decomposition_llm_model = llm.model_name
 
-    def do_claim_quality_evaluation(self, decompositions: List[Dict[str, Any]], ensure_coverage: bool = True,
-                                    max_iterations: int = 3) -> List[Dict[str, Any]]:
+    def do_claim_quality_evaluation(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Complete pipeline for claim quality evaluation with coverage guarantee.
+        Complete pipeline for claim quality evaluation.
         
         Pipeline:
         1. Decompose: Extract atomic facts (claims) - already done in input (decompositions param)
@@ -37,13 +35,9 @@ class ClaimQualityEvaluation(object):
         3. Normalize: Fix invalid claims (Incomplete, Context-dependent, Incorrectly-Structured)
         4. Classify again: Re-classify normalized claims
         5. Filter: Keep only Valid claims
-        6. Extract residuals: Extract missing information from sentence
-        7. Iterate: Repeat steps 3-6 until no new residuals found or max_iterations reached
         
         Args:
             decompositions: List of atomic claims (already decomposed) with 'id', 'sentence', 'claim', 'context', etc.
-            ensure_coverage: If True, iteratively extract residuals to ensure coverage. If False, skip residual extraction.
-            max_iterations: Maximum number of iterations for residual extraction loop.
         
         Returns:
             List of claim dictionaries with quality evaluation information.
@@ -51,75 +45,24 @@ class ClaimQualityEvaluation(object):
         # Step 2: Initial Classification
         all_claims = self.classify_claims(decompositions)
 
-        if not ensure_coverage:
-            return all_claims
-
-        # Group claims by (id, sentence) for residual extraction
+        # Group claims by (id, sentence) for processing
         claims_by_sentence = self._group_claims_by_sentence(all_claims)
 
-        # Track which sentences need more iterations
-        # {(response_id, sentence), ...}
-        sentences_to_process = set(claims_by_sentence.keys())
-
-        # Iterative residual extraction
-        iteration = 0
-        while iteration < max_iterations and sentences_to_process:
-            iteration += 1
-
-            new_residuals = []
-            sentences_with_no_residuals = set()
-
-            # Process each sentence group
-            for (response_id, sentence) in list(sentences_to_process):
-                claims = claims_by_sentence[(response_id, sentence)]
-                if not claims:
-                    sentences_with_no_residuals.add((response_id, sentence))
-                    continue
-
-                # Get context from first claim (all claims from same sentence share context)
-                context = claims[0].get('context', '') if claims else ''
-
-                # Step 3: Normalize invalid claims
-                normalized_claims = self._normalize_invalid_claims(claims)
-
-                # Step 4: Re-classify normalized claims
-                reclassified_claims = self.classify_claims(normalized_claims)
-
-                # Step 5: Filter to get only Valid claims
-                valid_claims = [c for c in reclassified_claims if c.get('claim_quality_type') == 'Valid']
-                valid_claim_texts = [c['claim'] for c in valid_claims if c.get('claim')]
-
-                # Update claims_by_sentence with reclassified claims
-                claims_by_sentence[(response_id, sentence)] = reclassified_claims
-
-                # Step 6: Extract residuals
-                residual_claims = self._extract_residuals(context, sentence, valid_claim_texts, response_id)
-
-                if residual_claims:
-                    # Add residuals to be processed in next iteration
-                    new_residuals.extend([(response_id, sentence, rc) for rc in residual_claims])
-                    # Keep this sentence in processing list for next iteration
-                else:
-                    # No residuals found, mark this sentence as done
-                    sentences_with_no_residuals.add((response_id, sentence))
-
-            # Add new residuals to claims_by_sentence
-            for response_id, sentence, residual_claim in new_residuals:
-                if (response_id, sentence) not in claims_by_sentence:
-                    claims_by_sentence[(response_id, sentence)] = []
-                claims_by_sentence[(response_id, sentence)].append(residual_claim)
-
-            # Update sentences to process (remove those with no residuals)
-            sentences_to_process -= sentences_with_no_residuals
-
-            # If no new residuals found, stop
-            if not new_residuals:
-                break
-
-        # Flatten results
+        # Process each sentence group
         final_claims = []
-        for claims in claims_by_sentence.values():
-            final_claims.extend(claims)
+        for (response_id, sentence), claims in claims_by_sentence.items():
+            if not claims:
+                continue
+
+            # Step 3: Normalize invalid claims
+            normalized_claims = self._normalize_invalid_claims(claims)
+
+            # Step 4: Re-classify normalized claims
+            reclassified_claims = self.classify_claims(normalized_claims)
+
+            # Step 5: Filter to get only Valid claims
+            valid_claims = [c for c in reclassified_claims if c.get('claim_quality_type') == 'Valid']
+            final_claims.extend(valid_claims)
 
         return final_claims
 
@@ -160,7 +103,7 @@ class ClaimQualityEvaluation(object):
         claim_quality_output = []
         for decomposition, completion in zip(decompositions, self.llm.normalize_llm_response(all_completions)):
             raw_output = completion.strip()
-            claim_quality_type = self.parse_claim_quality_output(raw_output)
+            claim_quality_type = self.parse_classify_claims_output(raw_output)
             output = {k: v for k, v in decomposition.items()}
             output["raw_claim_quality_response"] = raw_output
             output["claim_quality_type"] = claim_quality_type
@@ -169,7 +112,7 @@ class ClaimQualityEvaluation(object):
         self.llm.model_name = self.decomposition_llm_model
         return claim_quality_output
 
-    def parse_claim_quality_output(self, completion_message: str) -> str:
+    def parse_classify_claims_output(self, completion_message: str) -> str:
         valid_types = [
             "Valid",
             "Unverifiable",
@@ -683,110 +626,3 @@ Output ONLY the Reasoning and the Final Normalized Claim.
                     return line
 
         return None
-
-    def _check_coverage(self, context: str, sentence: str, current_claims: List[str]) -> Dict[str, Any]:
-        """Check if current claims fully cover the original sentence.
-        
-        Note: If current_claims is empty, we still check coverage because the sentence
-        might be Unverifiable (e.g., "I spoke to your doctor"), in which case empty claims
-        is acceptable and coverage should be FULL.
-        """
-        # Even if current_claims is empty, we still check coverage
-        # because the sentence might be Unverifiable (personal narratives, empathy)
-        # which doesn't need claims, so coverage would be FULL
-        prompt = format_residual_extraction(context, sentence, current_claims)
-        messages = [[{"role": "user", "content": prompt}]]
-
-        completions = asyncio.run(self.llm.batch_response(messages))
-        response = self.llm.normalize_llm_response(completions)[0]
-
-        return self._parse_coverage_response(response)
-
-    def _parse_coverage_response(self, completion: str) -> Dict[str, Any]:
-        """Parse coverage check response from LLM."""
-        completion = completion.strip()
-
-        # Try to extract JSON from response
-        json_match = re.search(r'\{[^}]*"coverage_status"[^}]*\}', completion, re.DOTALL)
-        if json_match:
-            try:
-                result = json.loads(json_match.group(0))
-                return {
-                    'coverage_status': result.get('coverage_status', 'UNKNOWN'),
-                    'missing_details': result.get('missing_details', [])
-                }
-            except json.JSONDecodeError:
-                pass
-
-        # Fallback: parse text response
-        coverage_status = 'UNKNOWN'
-        missing_details = []
-
-        if 'coverage_status' in completion.lower() or 'verdict' in completion.lower():
-            if 'full' in completion.lower() and 'missing' not in completion.lower():
-                coverage_status = 'FULL'
-            elif 'missing' in completion.lower():
-                coverage_status = 'MISSING'
-                # Try to extract missing details
-                details_match = re.search(r'missing[^:]*:\s*(.+?)(?:\n|$)', completion, re.IGNORECASE | re.DOTALL)
-                if details_match:
-                    missing_details = [details_match.group(1).strip()]
-
-        return {
-            'coverage_status': coverage_status,
-            'missing_details': missing_details
-        }
-
-    def _extract_residuals(self, context: str, sentence: str, current_claims: List[str], response_id: str) -> List[
-        Dict[str, Any]]:
-        """Extract residual claims that are missing from current claims."""
-        self.llm.model_name = 'gpt-oss:20b'
-
-        prompt = format_residual_extraction(context, sentence, current_claims)
-        messages = [[{"role": "user", "content": prompt}]]
-
-        completions = asyncio.run(self.llm.batch_response(messages))
-        response = self.llm.normalize_llm_response(completions)[0]
-
-        residual_claims = self._parse_residual_claims(response, context, sentence, response_id)
-
-        self.llm.model_name = self.decomposition_llm_model
-        return residual_claims
-
-    def _parse_residual_claims(self, completion: str, context: str, sentence: str, response_id: str) -> List[
-        Dict[str, Any]]:
-        """Parse residual claims from LLM response."""
-        completion = completion.strip()
-
-        # Check if no residual claims
-        if 'no residual verifiable claim' in completion.lower() or 'no verifiable residual claim' in completion.lower():
-            return []
-
-        # Extract facts from "Facts:" section
-        facts_started = False
-        residual_claims = []
-        claim_id = 0
-
-        for line in completion.split('\n'):
-            if 'facts:' in line.lower():
-                facts_started = True
-                continue
-
-            if facts_started and line.strip():
-                # Extract claim from bullet point
-                if line.strip().startswith('- '):
-                    claim_text = line.strip()[2:].strip()
-                    # Skip if it's a "no residual" message
-                    if claim_text and 'no residual' not in claim_text.lower() and 'no verifiable' not in claim_text.lower():
-                        residual_claims.append({
-                            'id': response_id,
-                            'sentence': sentence,
-                            'context': context,
-                            'claim': claim_text,
-                            'claim_id': claim_id,
-                            'is_residual': True,
-                            'residual_extraction_response': completion
-                        })
-                        claim_id += 1
-
-        return residual_claims
