@@ -2,7 +2,7 @@ import json
 from typing import List
 
 
-def format_coverage(context: str, sentence: str, current_claims: List[str]) -> str:
+def format_residual_extraction(context: str, sentence: str, current_claims: List[str]) -> str:
     formatted_current_claims = json.dumps(current_claims)
     prompt = f"""You are a meticulous medical expert specializing in information extraction. Your task is to identify and extract "Residual Claims" — medical facts present in a Sentence that are MISSING from a provided list of Current Claims.
 
@@ -214,7 +214,7 @@ current_claims = [
     "Primary dysmenorrhea is a condition that causes painful periods."
 ]
 
-content = format_coverage(context=context, sentence=sentence, current_claims=current_claims)
+content = format_residual_extraction(context=context, sentence=sentence, current_claims=current_claims)
 print(content)
 
 result = ollama.chat(
