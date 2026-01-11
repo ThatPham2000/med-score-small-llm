@@ -1,8 +1,18 @@
+import re
 from typing import List, Dict, Any
 
 from decomposer import Decomposer
 from llm import LLM
 
+
+def remove_think_tags(text):
+    pattern = r'<think>.*?</think>'
+
+    # Replace the pattern with an empty string
+    clean_text = re.sub(pattern, '', text, flags=re.DOTALL)
+
+    # .strip() removes leading/trailing whitespace left over
+    return clean_text.strip()
 
 class DecomposerSmallLLM(Decomposer):
     def __init__(
@@ -161,6 +171,7 @@ Facts:"""
     def format_completions(self, decomp_input: List[Dict[str, Any]], completions: List[str]) -> List[Dict[str, Any]]:
         decompositions = []
         for d_input, completion in zip(decomp_input, completions):
+            completion = remove_think_tags(completion)
             # Find the "Facts:" section and extract claims from there
             lines = completion.split("\n")
             facts_started = False
