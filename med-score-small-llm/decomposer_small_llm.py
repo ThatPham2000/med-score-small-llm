@@ -178,7 +178,7 @@ Facts:"""
             claim_list = []
 
             for line in lines:
-                if "Facts:" in line or "**Fact:**" in line:
+                if "Facts:" in line or "**Facts:**" in line or "Fact:" in line or "**Fact:**" in line:
                     facts_started = True
                     continue
                 if facts_started and line.strip():
