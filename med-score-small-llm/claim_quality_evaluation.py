@@ -49,6 +49,11 @@ class ClaimQualityEvaluation(object):
 
         if self.is_only_classification:
             return classified_claims
+        else:
+            # save to file for analysis
+            with open("classified_claims.jsonl", "w") as f:
+                for claim in classified_claims:
+                    f.write(json.dumps(claim) + "\n")
 
         # Group claims by (id, sentence) for processing
         claims_by_sentence = self._group_claims_by_sentence(classified_claims)
@@ -62,8 +67,18 @@ class ClaimQualityEvaluation(object):
             # Step 3: Normalize invalid claims
             normalized_claims = self.normalize_invalid_claims(claims)
 
+            # save to file for analysis
+            with open("normalized_claims.jsonl", "a") as f:
+                for claim in normalized_claims:
+                    f.write(json.dumps(claim) + "\n")
+
             # Step 4: Re-classify normalized claims
             reclassified_claims = self.classify_claims(normalized_claims)
+
+            # save to file for analysis
+            with open("reclassified_claims.jsonl", "a") as f:
+                for claim in reclassified_claims:
+                    f.write(json.dumps(claim) + "\n")
 
             # Step 5: Filter to get only Valid claims
             # valid_claims = [c for c in reclassified_claims if c.get('claim_quality_type') == 'Valid']
