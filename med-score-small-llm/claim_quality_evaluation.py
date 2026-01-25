@@ -46,6 +46,7 @@ class ClaimQualityEvaluation(object):
         """
         # Step 2: Initial Classification
         classified_claims = self.classify_claims(decompositions)
+        print(f"Classified claims: done, total={len(classified_claims)}")
 
         if self.is_only_classification:
             return classified_claims
@@ -66,6 +67,7 @@ class ClaimQualityEvaluation(object):
 
             # Step 3: Normalize invalid claims
             normalized_claims = self.normalize_invalid_claims(claims)
+            print(f"Normalized claims for response_id={response_id}, sentence_id={claims[0]['sentence_id']}: done, total={len(normalized_claims)}")
 
             # save to file for analysis
             with open("normalized_claims.jsonl", "a") as f:
@@ -74,6 +76,7 @@ class ClaimQualityEvaluation(object):
 
             # Step 4: Re-classify normalized claims
             reclassified_claims = self.classify_claims(normalized_claims)
+            print(f"Re-classified claims for response_id={response_id}, sentence_id={claims[0]['sentence_id']}: done, total={len(reclassified_claims)}")
 
             # save to file for analysis
             with open("reclassified_claims.jsonl", "a") as f:
