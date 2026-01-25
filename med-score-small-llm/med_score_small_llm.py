@@ -63,11 +63,12 @@ def initialize_claim_quality_evaluation(
         claim_quality_evaluation_llm_provider: str,
         claim_quality_evaluation_model_name: str,
         claim_quality_evaluation_server: Optional[str],
+        is_only_classification: bool = False,
 ):
     llm = initialize_llm(claim_quality_evaluation_llm_provider, claim_quality_evaluation_model_name,
                          claim_quality_evaluation_server)
 
-    return ClaimQualityEvaluation(llm=llm)
+    return ClaimQualityEvaluation(llm=llm, is_only_classification=is_only_classification)
 
 
 def initialize_verifier(
@@ -120,6 +121,7 @@ class MedScoreSmallLLM(object):
             claim_quality_evaluation_llm_provider: str = "ollama",
             claim_quality_evaluation_model_name: str = "llama3.2:3b",
             claim_quality_evaluation_server: Optional[str] = None,
+            is_only_classification: bool = False,
     ):
         self.decomposer = initialize_decomposer(
             decomposition_mode,
@@ -140,6 +142,7 @@ class MedScoreSmallLLM(object):
             claim_quality_evaluation_llm_provider,
             claim_quality_evaluation_model_name,
             claim_quality_evaluation_server,
+            is_only_classification,
         )
 
     def decompose(
@@ -203,6 +206,7 @@ def parse_args():
 
     # Claim quality evaluation
     parser.add_argument("--evaluate_claim_quality_only", action="store_true")
+    parser.add_argument("--is_only_classification", action="store_true")
     parser.add_argument("--valid_decomposition_input_file", type=str, default=None,
                         help="Path to valid decomposition input file")
     parser.add_argument("--claim_quality_evaluation_llm_provider", type=str, choices=["ollama", "openapi"],
@@ -271,6 +275,7 @@ if __name__ == '__main__':
         claim_quality_evaluation_llm_provider=args.claim_quality_evaluation_llm_provider,
         claim_quality_evaluation_model_name=args.claim_quality_evaluation_model_name,
         claim_quality_evaluation_server=args.claim_quality_evaluation_server,
+        is_only_classification=args.is_only_classification,
     )
 
     decompositions = []

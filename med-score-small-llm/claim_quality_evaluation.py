@@ -16,10 +16,12 @@ class ClaimQualityEvaluation(object):
     def __init__(
             self,
             llm: LLM = None,
+            is_only_classification: bool = False,
             random_state: int = 42,
             batch_size: int = 32,
     ):
         self.llm = llm
+        self.is_only_classification = is_only_classification
         self.llm.max_tokens = 10240
         self.random_state = random_state
         self.batch_size = batch_size
@@ -44,6 +46,9 @@ class ClaimQualityEvaluation(object):
         """
         # Step 2: Initial Classification
         classified_claims = self.classify_claims(decompositions)
+
+        if self.is_only_classification:
+            return classified_claims
 
         # Group claims by (id, sentence) for processing
         claims_by_sentence = self._group_claims_by_sentence(classified_claims)
