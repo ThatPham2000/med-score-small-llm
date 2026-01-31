@@ -1,18 +1,8 @@
-import re
 from typing import List, Dict, Any
 
 from decomposer import Decomposer
 from llm import LLM
-
-
-def remove_think_tags(text):
-    pattern = r'<think>.*?</think>'
-
-    # Replace the pattern with an empty string
-    clean_text = re.sub(pattern, '', text, flags=re.DOTALL)
-
-    # .strip() removes leading/trailing whitespace left over
-    return clean_text.strip()
+from utils import remove_think_tags
 
 class DecomposerSmallLLM(Decomposer):
     def __init__(

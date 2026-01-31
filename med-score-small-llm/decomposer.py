@@ -5,7 +5,7 @@ import nest_asyncio
 from tqdm import tqdm
 
 from llm import LLM
-from utils import chunker, process_claim
+from utils import chunker, process_claim, remove_think_tags
 
 nest_asyncio.apply()
 
@@ -51,6 +51,7 @@ class Decomposer(object):
     def format_completions(self, decomp_input: List[Dict[str, Any]], completions: List[str]) -> List[Dict[str, Any]]:
         decompositions = []
         for d_input, completion in zip(decomp_input, completions):
+            completion = remove_think_tags(completion)
             claim_list = completion.split("\n")
             claim_list = process_claim(claim_list)
             for idx, claim in enumerate(claim_list):

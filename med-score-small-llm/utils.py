@@ -1,3 +1,4 @@
+import re
 from itertools import islice
 from typing import List, Dict, Any, Iterable
 
@@ -139,3 +140,13 @@ def parse_reasoning_response_with_confidence(completion: str) -> tuple:
         raw_response = "True" if is_supported else "False"
 
     return raw_response, is_supported, confidence
+
+
+def remove_think_tags(text):
+    pattern = r'<think>.*?</think>'
+
+    # Replace the pattern with an empty string
+    clean_text = re.sub(pattern, '', text, flags=re.DOTALL)
+
+    # .strip() removes leading/trailing whitespace left over
+    return clean_text.strip()
