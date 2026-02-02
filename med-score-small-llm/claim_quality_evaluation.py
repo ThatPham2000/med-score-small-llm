@@ -15,6 +15,7 @@ nest_asyncio.apply()
 class ClaimQualityEvaluation(object):
     def __init__(
             self,
+            normalized_llm: LLM = None,
             llm: LLM = None,
             is_only_classification: bool = False,
             random_state: int = 42,
@@ -25,7 +26,7 @@ class ClaimQualityEvaluation(object):
         self.llm.max_tokens = 10240
         self.random_state = random_state
         self.batch_size = batch_size
-        self.decomposition_llm_model = llm.model_name
+        self.normalized_llm = normalized_llm
 
     def do_claim_quality_evaluation(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -67,7 +68,8 @@ class ClaimQualityEvaluation(object):
 
             # Step 3: Normalize invalid claims
             normalized_claims = self.normalize_invalid_claims(claims)
-            print(f"Normalized claims for response_id={response_id}, sentence_id={claims[0]['sentence_id']}: done, total={len(normalized_claims)}")
+            print(
+                f"Normalized claims for response_id={response_id}, sentence_id={claims[0]['sentence_id']}: done, total={len(normalized_claims)}")
 
             # save to file for analysis
             with open("normalized_claims.jsonl", "a") as f:
@@ -76,7 +78,8 @@ class ClaimQualityEvaluation(object):
 
             # Step 4: Re-classify normalized claims
             reclassified_claims = self.classify_claims(normalized_claims)
-            print(f"Re-classified claims for response_id={response_id}, sentence_id={claims[0]['sentence_id']}: done, total={len(reclassified_claims)}")
+            print(
+                f"Re-classified claims for response_id={response_id}, sentence_id={claims[0]['sentence_id']}: done, total={len(reclassified_claims)}")
 
             # save to file for analysis
             with open("reclassified_claims.jsonl", "a") as f:
@@ -91,7 +94,6 @@ class ClaimQualityEvaluation(object):
         return final_claims
 
     def classify_claims(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        self.llm.model_name = 'gpt-oss:20b'
         # Group decompositions by id (same response)
         decompositions_by_id = {}
         for d in decompositions:
@@ -133,7 +135,6 @@ class ClaimQualityEvaluation(object):
             output["claim_quality_type"] = claim_quality_type
             claim_quality_output.append(output)
 
-        self.llm.model_name = self.decomposition_llm_model
         return claim_quality_output
 
     def parse_classify_claims_output(self, completion_message: str) -> str:
@@ -599,11 +600,11 @@ Output ONLY the Reasoning and the Final Normalized Claim.
         all_completions = []
         n_iter = len(messages) // self.batch_size + (1 if len(messages) % self.batch_size else 0)
         for batch in tqdm(chunker(messages, self.batch_size), desc="Normalizing claims process", total=n_iter):
-            completions = asyncio.run(self.llm.batch_response(batch))
+            completions = asyncio.run(self.normalized_llm.batch_response(batch))
             all_completions.extend(completions)
 
         # Parse normalized claims
-        for claim, completion in zip(claims_to_normalize, self.llm.normalize_llm_response(all_completions)):
+        for claim, completion in zip(claims_to_normalize, self.normalized_llm.normalize_llm_response(all_completions)):
             normalized_text = self.parse_normalized_claim(completion)
             if normalized_text:
                 new_claim = {k: v for k, v in claim.items()}

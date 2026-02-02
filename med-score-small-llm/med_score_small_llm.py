@@ -60,6 +60,9 @@ def initialize_decomposer(
 
 
 def initialize_claim_quality_evaluation(
+        decomposition_llm_provider: str,
+        decomposition_model_name: str,
+        decomposition_server: str,  # used to continue normalizing invalid claims
         claim_quality_evaluation_llm_provider: str,
         claim_quality_evaluation_model_name: str,
         claim_quality_evaluation_server: Optional[str],
@@ -67,8 +70,10 @@ def initialize_claim_quality_evaluation(
 ):
     llm = initialize_llm(claim_quality_evaluation_llm_provider, claim_quality_evaluation_model_name,
                          claim_quality_evaluation_server)
+    normalized_llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
 
-    return ClaimQualityEvaluation(llm=llm, is_only_classification=is_only_classification)
+    return ClaimQualityEvaluation(llm=llm, is_only_classification=is_only_classification,
+                                  normalized_llm=normalized_llm)
 
 
 def initialize_verifier(
@@ -139,6 +144,9 @@ class MedScoreSmallLLM(object):
         )
 
         self.claim_quality_evaluation = initialize_claim_quality_evaluation(
+            decomposition_llm_provider,
+            decomposition_model_name,
+            decomposition_server,
             claim_quality_evaluation_llm_provider,
             claim_quality_evaluation_model_name,
             claim_quality_evaluation_server,
