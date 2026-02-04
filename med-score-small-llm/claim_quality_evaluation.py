@@ -49,13 +49,11 @@ class ClaimQualityEvaluation(object):
         classified_claims = self.classify_claims(decompositions)
         print(f"Classified claims: done, total={len(classified_claims)}")
 
-        if self.is_only_classification:
-            return classified_claims
-        else:
-            # save to file for analysis
-            with open("classified_claims.jsonl", "w") as f:
-                for claim in classified_claims:
-                    f.write(json.dumps(claim) + "\n")
+        # get classified claims from file for continuing the pipeline
+        # classified_claims = []
+        # with open("classified_claims.jsonl", "r") as f:
+        #     for line in f:
+        #         classified_claims.append(json.loads(line.strip()))
 
         # Group claims by (id, sentence) for processing
         claims_by_sentence = self._group_claims_by_sentence(classified_claims)
