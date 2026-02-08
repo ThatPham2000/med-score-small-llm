@@ -23,10 +23,11 @@ class ClaimQualityEvaluation(object):
     ):
         self.llm = llm
         self.is_only_classification = is_only_classification
-        self.llm.max_tokens = 10240
+        self.llm.max_tokens = 32000
         self.random_state = random_state
         self.batch_size = batch_size
         self.normalized_llm = normalized_llm
+        self.normalized_llm.max_tokens = 10240
 
     def do_claim_quality_evaluation(self, decompositions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
