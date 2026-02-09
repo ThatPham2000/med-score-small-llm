@@ -13,9 +13,9 @@ nest_asyncio.apply()
 
 
 class LLMOpenAI(LLM):
-    def __init__(self, model_name: str, server_path: str):
+    def __init__(self, model_name: str, server_path: str, api_key: str):
         super().__init__(model_name)
-        self.client = AsyncOpenAI(base_url=server_path)
+        self.client = AsyncOpenAI(base_url=server_path,api_key=api_key)
 
     @backoff.on_exception(
         backoff.expo,
