@@ -30,9 +30,9 @@ def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
             ollama_async_client=ollama.AsyncClient(host=server, verify=False)
         )
 
-    if llm_provider == "openapi":
+    if llm_provider == "openai":
         if server is None:
-            raise InvalidArgumentException("Server URL must be provided for OpenAPI LLM provider")
+            raise InvalidArgumentException("Server URL must be provided for OpenAI LLM provider")
         return LLMOpenAI(model_name=model_name, server_path=server)
 
     raise IllegalArgumentException(f"Unknown LLM provider: {llm_provider}")
@@ -201,7 +201,7 @@ def parse_args():
     parser.add_argument("--decomposition_mode", type=str,
                         choices=["small_llm", "medscore", "factscore", "dndscore", "custom"],
                         default="small_llm", help="Decomposition mode")
-    parser.add_argument("--decomposition_llm_provider", type=str, choices=["ollama", "openapi"],
+    parser.add_argument("--decomposition_llm_provider", type=str, choices=["ollama", "openai"],
                         default="ollama", help="LLM provider for decomposition")
     parser.add_argument("--decomposition_model_name", type=str, default="gemma3:12b",
                         help="Model name for decomposition")
@@ -217,7 +217,7 @@ def parse_args():
     parser.add_argument("--is_only_classification", action="store_true")
     parser.add_argument("--valid_decomposition_input_file", type=str, default=None,
                         help="Path to valid decomposition input file")
-    parser.add_argument("--claim_quality_evaluation_llm_provider", type=str, choices=["ollama", "openapi"],
+    parser.add_argument("--claim_quality_evaluation_llm_provider", type=str, choices=["ollama", "openai"],
                         default="ollama", help="LLM provider for claim quality evaluation")
     parser.add_argument("--claim_quality_evaluation_model_name", type=str, default="gemma3:12b",
                         help="Model name for claim quality evaluation")
@@ -228,7 +228,7 @@ def parse_args():
     parser.add_argument("--verification_mode", type=str,
                         choices=["internal", "provided"],
                         default="internal_small_llm", help="Verification mode")
-    parser.add_argument("--verification_llm_provider", type=str, choices=["ollama", "openapi"],
+    parser.add_argument("--verification_llm_provider", type=str, choices=["ollama", "openai"],
                         default="ollama", help="LLM provider for verification")
     parser.add_argument("--verification_model_name", type=str, default="gemma3:12b",
                         help="Model name for verification")
