@@ -20,7 +20,7 @@ from verifier_internal import VerifierInternal
 from verifier_provided_evidence import VerifierProvidedEvidence
 
 
-def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
+def initialize_llm(llm_provider: str, model_name: str, server: Optional[str], openai_api_key: Optional[str]):
     llm_provider = llm_provider.lower()
     if llm_provider == "ollama":
         if server is None:
@@ -33,7 +33,9 @@ def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
     if llm_provider == "openai":
         if server is None:
             raise InvalidArgumentException("Server URL must be provided for OpenAI LLM provider")
-        return LLMOpenAI(model_name=model_name, server_path=server)
+        if openai_api_key is None:
+            raise InvalidArgumentException("OpenAI API key must be provided for OpenAI LLM provider")
+        return LLMOpenAI(model_name=model_name, server_path=server, api_key=openai_api_key)
 
     raise IllegalArgumentException(f"Unknown LLM provider: {llm_provider}")
 
@@ -42,10 +44,11 @@ def initialize_decomposer(
         decomposition_mode: str,
         decomposition_llm_provider: str,
         decomposition_model_name: str,
-        decomposition_server: Optional[str]
+        decomposition_server: Optional[str],
+        openai_api_key: Optional[str],
 ):
     mode = decomposition_mode.lower()
-    llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
+    llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server, openai_api_key)
 
     if mode == "small_llm":
         return DecomposerSmallLLM(llm=llm)
@@ -67,10 +70,12 @@ def initialize_claim_quality_evaluation(
         claim_quality_evaluation_model_name: str,
         claim_quality_evaluation_server: Optional[str],
         is_only_classification: bool = False,
+        openai_api_key: Optional[str] = None,
 ):
     llm = initialize_llm(claim_quality_evaluation_llm_provider, claim_quality_evaluation_model_name,
-                         claim_quality_evaluation_server)
-    normalized_llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
+                         claim_quality_evaluation_server, openai_api_key)
+    normalized_llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server,
+                                    openai_api_key)
 
     return ClaimQualityEvaluation(llm=llm, is_only_classification=is_only_classification,
                                   normalized_llm=normalized_llm)
@@ -82,10 +87,11 @@ def initialize_verifier(
         verification_model_name: str,
         verification_server: Optional[str],
         provided_evidence: Optional[Dict[str, str]] = None,
+        openai_api_key: Optional[str] = None,
 ):
     """Initialize verifier with multiple modes support"""
     mode = verification_mode.lower()
-    llm = initialize_llm(verification_llm_provider, verification_model_name, verification_server)
+    llm = initialize_llm(verification_llm_provider, verification_model_name, verification_server, openai_api_key)
 
     if mode == "internal":
         return VerifierInternal(llm)
@@ -127,12 +133,14 @@ class MedScoreSmallLLM(object):
             claim_quality_evaluation_model_name: str = "llama3.2:3b",
             claim_quality_evaluation_server: Optional[str] = None,
             is_only_classification: bool = False,
+            openai_api_key: Optional[str] = None,
     ):
         self.decomposer = initialize_decomposer(
             decomposition_mode,
             decomposition_llm_provider,
             decomposition_model_name,
             decomposition_server,
+            openai_api_key,
         )
 
         self.verifier = initialize_verifier(
@@ -141,6 +149,7 @@ class MedScoreSmallLLM(object):
             verification_model_name,
             verification_server,
             provided_evidence,
+            openai_api_key,
         )
 
         self.claim_quality_evaluation = initialize_claim_quality_evaluation(
@@ -151,6 +160,7 @@ class MedScoreSmallLLM(object):
             claim_quality_evaluation_model_name,
             claim_quality_evaluation_server,
             is_only_classification,
+            openai_api_key,
         )
 
     def decompose(
@@ -196,6 +206,7 @@ def parse_args():
     parser.add_argument("--output_dir", required=True, type=str, help="Output directory for results")
     parser.add_argument("--decompose_only", action="store_true", help="Only run decomposition")
     parser.add_argument("--verify_only", action="store_true", help="Only run verification")
+    parser.add_argument("--openai_api_key", type=str, help="Input OPENAI API key")
 
     # Decomposition
     parser.add_argument("--decomposition_mode", type=str,
@@ -284,6 +295,7 @@ if __name__ == '__main__':
         claim_quality_evaluation_model_name=args.claim_quality_evaluation_model_name,
         claim_quality_evaluation_server=args.claim_quality_evaluation_server,
         is_only_classification=args.is_only_classification,
+        openai_api_key=args.openai_api_key,
     )
 
     decompositions = []
