@@ -1,13 +1,14 @@
 import asyncio
 import json
 import re
+import time
 from typing import List, Dict, Any, Optional
 
 import nest_asyncio
 from tqdm import tqdm
 
 from llm import LLM
-from utils import chunker
+from utils import chunker, remove_think_tags
 
 nest_asyncio.apply()
 
@@ -97,6 +98,7 @@ class ClaimQualityEvaluation(object):
             # valid_claims = [c for c in reclassified_claims if c.get('claim_quality_type') == 'Valid']
 
             final_claims.extend(reclassified_claims)
+            # time.sleep(2)
 
         return final_claims
 
@@ -132,15 +134,19 @@ class ClaimQualityEvaluation(object):
         for batch in tqdm(chunker(messages, self.batch_size), desc="Classify claims process", total=n_iter):
             completions = asyncio.run(self.llm.batch_response(batch))
             all_completions.extend(completions)
+            # time.sleep(3)
 
         claim_quality_output = []
         for decomposition, completion in zip(decompositions, self.llm.normalize_llm_response(all_completions)):
-            raw_output = completion.strip()
-            claim_quality_type = self.parse_classify_claims_output(raw_output)
-            output = {k: v for k, v in decomposition.items()}
-            output["raw_claim_quality_response"] = raw_output
-            output["claim_quality_type"] = claim_quality_type
-            claim_quality_output.append(output)
+            if completion is not None:
+                raw_output = completion.strip()
+                claim_quality_type = self.parse_classify_claims_output(raw_output)
+                output = {k: v for k, v in decomposition.items()}
+                output["raw_claim_quality_response"] = raw_output
+                output["claim_quality_type"] = claim_quality_type
+                claim_quality_output.append(output)
+            else:
+                print("No claim quality response", decomposition)
 
         return claim_quality_output
 
@@ -612,6 +618,7 @@ Output ONLY the Reasoning and the Final Normalized Claim.
 
         # Parse normalized claims
         for claim, completion in zip(claims_to_normalize, self.normalized_llm.normalize_llm_response(all_completions)):
+            completion = remove_think_tags(completion)
             normalized_text = self.parse_normalized_claim(completion)
             if normalized_text:
                 new_claim = {k: v for k, v in claim.items()}
