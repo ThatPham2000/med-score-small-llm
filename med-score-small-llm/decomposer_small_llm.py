@@ -10,7 +10,7 @@ class DecomposerSmallLLM(Decomposer):
             llm: LLM = None,
     ):
         super().__init__(llm=llm)
-        self.llm.max_tokens = 4096
+        self.llm.max_tokens = 10240 # for thinking models
 
     def format_input(self, context: str, sentence: str) -> str:
         prompt = f"""You are a meticulous medical expert specializing in information extraction. Your task is to decompose a medical sentence into individual, verifiable facts by following a rigorous reasoning process.
