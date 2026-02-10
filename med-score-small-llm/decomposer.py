@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import Optional, List, Dict, Any
 
 import nest_asyncio
@@ -15,7 +16,7 @@ class Decomposer(object):
             self,
             llm: LLM = None,
             random_state: int = 42,
-            batch_size: int = 32,
+            batch_size: int = 16, #TODO(THAT): edit
     ):
         self.llm = llm
         self.random_state = random_state
@@ -43,6 +44,7 @@ class Decomposer(object):
         for batch in tqdm(chunker(messages, self.batch_size), desc="Decomposer process", total=n_iter, ncols=0):
             completions = asyncio.run(self.llm.batch_response(batch))
             all_completions.extend(completions)
+            time.sleep(3) # TODO(THAT): edit
 
         # Format claims
         decompositions = self.format_completions(decomposition_input, self.llm.normalize_llm_response(all_completions))
