@@ -147,6 +147,9 @@ class ClaimQualityEvaluation(object):
                 claim_quality_output.append(output)
             else:
                 print("No claim quality response", decomposition)
+                # save in file jsonl for analysis
+                with open("no_claim_quality_response.jsonl", "a") as f:
+                    f.write(json.dumps(decomposition) + "\n")
 
         return claim_quality_output
 
