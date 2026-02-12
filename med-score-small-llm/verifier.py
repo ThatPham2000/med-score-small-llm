@@ -1,5 +1,6 @@
 import asyncio
 import string
+import time
 from typing import List, Dict, Any
 
 import nest_asyncio
@@ -17,9 +18,10 @@ class Verifier(object):
             self,
             llm: LLM = None,
             random_state: int = 42,
-            batch_size: int = 32,
+            batch_size: int = 16,
     ):
         self.llm = llm
+        self.llm.max_tokens = 32000
         self.random_state = random_state
         self.batch_size = batch_size
 
@@ -49,6 +51,7 @@ class Verifier(object):
             for batch in tqdm(chunker(messages, self.batch_size), desc="Verifier process", total=n_iter):
                 completions = asyncio.run(self.llm.batch_response(batch))
                 all_completions.extend(completions)
+                time.sleep(3)
 
             for verifier_input, completion in zip(verifier_inputs, self.llm.normalize_llm_response(all_completions)):
                 raw_output = completion.strip()
@@ -59,21 +62,21 @@ class Verifier(object):
                 verification_output.append(output)
 
         # Create output for non-Valid decompositions
-        non_valid_outputs = []
-        for idx in non_valid_indices:
-            output = {k: v for k, v in decompositions[idx].items()}
-            output["raw"] = None
-            output["score"] = 0.0
-            non_valid_outputs.append((idx, output))
+        # non_valid_outputs = []
+        # for idx in non_valid_indices:
+        #     output = {k: v for k, v in decompositions[idx].items()}
+        #     output["raw"] = None
+        #     output["score"] = 0.0
+        #     non_valid_outputs.append((idx, output))
+        #
+        # # Merge results maintaining original order
+        # all_outputs = [None] * len(decompositions)
+        # for i, output in enumerate(verification_output):
+        #     all_outputs[valid_indices[i]] = output
+        # for idx, output in non_valid_outputs:
+        #     all_outputs[idx] = output
 
-        # Merge results maintaining original order
-        all_outputs = [None] * len(decompositions)
-        for i, output in enumerate(verification_output):
-            all_outputs[valid_indices[i]] = output
-        for idx, output in non_valid_outputs:
-            all_outputs[idx] = output
-
-        return all_outputs
+        return verification_output
 
     def parse_verification_output(self, completion_message: str) -> float:
         generated_answer = completion_message.strip().lower()
