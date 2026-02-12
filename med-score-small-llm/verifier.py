@@ -1,4 +1,5 @@
 import asyncio
+import json
 import string
 import time
 from typing import List, Dict, Any
@@ -54,12 +55,19 @@ class Verifier(object):
                 time.sleep(3)
 
             for verifier_input, completion in zip(verifier_inputs, self.llm.normalize_llm_response(all_completions)):
-                raw_output = completion.strip()
-                is_supported = self.parse_verification_output(raw_output)
-                output = {k: v for k, v in verifier_input.items()}
-                output["raw"] = raw_output
-                output["score"] = is_supported
-                verification_output.append(output)
+                if completion is not None:
+                    raw_output = completion.strip()
+                    is_supported = self.parse_verification_output(raw_output)
+                    output = {k: v for k, v in verifier_input.items()}
+                    output["raw"] = raw_output
+                    output["score"] = is_supported
+                    verification_output.append(output)
+                else:
+                    print('Verification failed for input:', verifier_input)
+                    # Save to jsonl file for later analysis
+                    output = {k: v for k, v in verifier_input.items()}
+                    with open("verification_failed.jsonl", "a") as f:
+                        f.write(json.dumps(output) + "\n")
 
         # Create output for non-Valid decompositions
         # non_valid_outputs = []
