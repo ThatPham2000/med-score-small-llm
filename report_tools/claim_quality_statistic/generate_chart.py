@@ -87,8 +87,8 @@ MedScore-LMS (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.60\%)
                 fontweight='bold', color='#333333')
 
     # 5. Finalizing layout
-    ax.set_title('Claim Taxonomy Distribution (%) with Total Sample Counts', fontsize=18, fontweight='bold', pad=30)
-    ax.set_xlabel('Percentage of Total Claims (%)', fontsize=12, labelpad=10)
+    ax.set_title('Automatic taxonomy profiling', fontsize=18, fontweight='bold', pad=30)
+    ax.set_xlabel('Percentage of Total Claims', fontsize=12, labelpad=10)
     ax.set_xlim(0, 115)  # Leave space to the right for the word "Total"
     ax.legend(title='Claim quality Labels', bbox_to_anchor=(0.5, -0.1), loc='upper center', ncol=4, frameon=False,
               fontsize=11)
