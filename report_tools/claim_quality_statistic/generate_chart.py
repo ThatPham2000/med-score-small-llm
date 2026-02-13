@@ -51,46 +51,46 @@ MedScore-LMS (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.60\%)
     }
 
     df_counts = pd.DataFrame(counts_data, index=methods)
-    # Tính toán % dựa trên con số Total thực tế của bảng
+    # Calculate percentages based on the actual Total numbers from the table
     df_pct = df_counts.div(totals, axis=0) * 100
 
-    # 2. Màu sắc chuyên dụng cho bài báo khoa học
+    # 2. Set claim quality label colors
     colors = ['#27ae60', '#e74c3c', '#f39c12', '#3498db', '#9b59b6', '#d35400', '#7f8c8d']
 
     fig, ax = plt.subplots(figsize=(16, 10))
     df_pct.plot(kind='barh', stacked=True, color=colors, ax=ax, width=0.8, edgecolor='white', linewidth=0.5)
 
-    # 3. Gắn nhãn Phần trăm (%)
+    # 3. Adding Percentage Labels
     for i, col in enumerate(df_counts.columns):
         for j, method in enumerate(methods):
             patch = ax.patches[i * len(methods) + j]
             width = patch.get_width()
 
-            if width > 0.5:  # Hiển thị nếu tỷ lệ > 0.5%
+            if width > 0.5:  # Display only if percentage > 0.5%
                 x_pos = patch.get_x() + width / 2
                 y_pos = patch.get_y() + patch.get_height() / 2
 
-                # Quyết định cỡ chữ và độ xoay
+                # Decide font size and rotation
                 if width > 4.5:
                     label = f"{width:.1f}%"
                     fs, rot = 9, 0
                 else:
                     label = f"{width:.1f}%"
-                    fs, rot = 8, 90  # Xoay dọc nếu cột quá hẹp
+                    fs, rot = 8, 90  # Rotate vertically if too narrow
 
                 ax.text(x_pos, y_pos, label, ha='center', va='center',
                         fontsize=fs, color='white', fontweight='bold', rotation=rot)
 
-    # 4. Gắn nhãn TỔNG CỘNG (Total Count) ở cuối thanh
+    # 4. Adding Total Sample Count Labels
     for i, total in enumerate(totals):
         ax.text(101, i, f"Total: {total}", va='center', fontsize=11,
                 fontweight='bold', color='#333333')
 
-    # 5. Hoàn thiện layout
+    # 5. Finalizing layout
     ax.set_title('Claim Taxonomy Distribution (%) with Total Sample Counts', fontsize=18, fontweight='bold', pad=30)
     ax.set_xlabel('Percentage of Total Claims (%)', fontsize=12, labelpad=10)
-    ax.set_xlim(0, 115)  # Chừa khoảng trống bên phải cho chữ "Total"
-    ax.legend(title='Taxonomy Labels', bbox_to_anchor=(0.5, -0.1), loc='upper center', ncol=4, frameon=False,
+    ax.set_xlim(0, 115)  # Leave space to the right for the word "Total"
+    ax.legend(title='Claim quality Labels', bbox_to_anchor=(0.5, -0.1), loc='upper center', ncol=4, frameon=False,
               fontsize=11)
     ax.invert_yaxis()
     ax.spines['top'].set_visible(False)
@@ -100,7 +100,7 @@ MedScore-LMS (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.60\%)
     plt.tight_layout()
     plt.savefig('claim_quality_statistic.pdf', bbox_inches='tight')
     plt.savefig('claim_quality_statistic.png', dpi=300, bbox_inches='tight')
-    print(f"File đã được tạo: {os.getcwd()}")
+    print(f"Files were created: {os.getcwd()}")
 
 
 if __name__ == "__main__":
