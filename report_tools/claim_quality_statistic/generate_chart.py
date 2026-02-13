@@ -12,7 +12,7 @@ def generate_claim_quality_chart():
 \hline
 \textbf{Method} & \textbf{Total} & \textbf{Valid} & \textbf{Unverifiable} & \textbf{Hallucinated} & \textbf{Incomplete} & \textbf{Incorrectly-structured} & \textbf{Context-dependent} & \textbf{Redundant} \\
 \hline
-FActScore (ministral-3:14b) & 4978 & 1463 (29.39\%) & 273 (5.48\%) & 311 (6.25\%) & 728 (14.62\%) & 349 (7.01\%) & 1389 (28.08\%) & 452 (9.08\%) \\
+FActScore (ministral-3:14b) & 4978 & 1463 (29.39\%) & 273 (5.48\%) & 311 (6.25\%) & 728 (14.62\%) & 349 (7.01\%) & 1398 (28.08\%) & 452 (9.08\%) \\
 FActScore (phi4:14b) & 3925 & 1258 (32.05\%) & 274 (6.98\%) & 170 (4.33\%) & 600 (15.29\%) & 378 (9.63\%) & 1126 (28.69\%) & 117 (2.98\%) \\
 FActScore (deepseek-r1:14b) & 2848 & 731 (25.67\%) & 197 (6.92\%) & 113 (3.97\%) & 496 (17.42\%) & 223 (7.83\%) & 1055 (37.04\%) & 31 (1.09\%) \\
 MedScore (ministral-3:14b) & 1516 & 950 (62.66\%) & 0 (0\%) & 403 (26.58\%) & 98 (6.46\%) & 0 (0\%) & 17 (1.12\%) & 48 (3.17\%) \\
@@ -46,7 +46,7 @@ MedScore-LMS (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.60\%)
         'Hallucinated':           [311,  170,  113,  403, 230,  24,  124, 128, 50,  37],
         'Incomplete':             [728,  600,  496,  98,  365,  467, 73,  46,  50,  49],
         'Incorrectly-structured': [349,  378,  223,  0,   213,  56,  4,   7,   40,  36],
-        'Context-dependent':      [1389, 1126, 1055, 17,  204,  64,  72,  28,  87,  86],
+        'Context-dependent':      [1398, 1126, 1055, 17,  204,  64,  72,  28,  87,  86],
         'Redundant':              [452,  117,  31,   48,  58,   7,   6,   121, 165, 52]
     }
 
@@ -71,11 +71,11 @@ MedScore-LMS (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.60\%)
                 y_pos = patch.get_y() + patch.get_height() / 2
 
                 # Decide font size and rotation
-                if width > 4.5:
-                    label = f"{width:.1f}%"
+                if width > 6.0:
+                    label = f"{width:.2f}%"
                     fs, rot = 9, 0
                 else:
-                    label = f"{width:.1f}%"
+                    label = f"{width:.2f}%"
                     fs, rot = 8, 90  # Rotate vertically if too narrow
 
                 ax.text(x_pos, y_pos, label, ha='center', va='center',
@@ -88,7 +88,7 @@ MedScore-LMS (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.60\%)
 
     # 5. Finalizing layout
     ax.set_title('Automatic taxonomy profiling distribution', fontsize=18, fontweight='bold', pad=30)
-    ax.set_xlabel('Percentage of Total Claims', fontsize=12, labelpad=10)
+    ax.set_xlabel('Percentage of Total Claims (%)', fontsize=12, labelpad=10)
     ax.set_xlim(0, 115)  # Leave space to the right for the word "Total"
     ax.legend(title='Claim quality Labels', bbox_to_anchor=(0.5, -0.1), loc='upper center', ncol=4, frameon=False,
               fontsize=11)
