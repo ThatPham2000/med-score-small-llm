@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 
-def generate_claim_quality_chart():
+def generate_ablation_claim_quality_chart():
     """
 \begin{table}[t]
 \centering
@@ -24,26 +24,28 @@ MedScore-LMS$**$ (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.6
 \label{tab:ablation_claim_quality_stats}
 \end{table}
     """
-    # 1. Data from Table 2
+    # 1. Data from Table
     methods = [
-        'FActScore (ministral-3:14b)', 'FActScore (phi4:14b)', 'FActScore (deepseek-r1:14b)',
-        'MedScore (ministral-3:14b)', 'MedScore (phi4:14b)', 'MedScore (deepseek-r1:14b)',
-        'MedScore (GPT-4o-mini)',
-        'MedScore-LMS (ministral-3:14b)', 'MedScore-LMS (phi4:14b)', 'MedScore-LMS (deepseek-r1:14b)'
+        'MedScore-LMS* (ministral-3:14b)',
+        'MedScore-LMS** (ministral-3:14b)',
+        'MedScore-LMS* (phi4:14b)',
+        'MedScore-LMS** (phi4:14b)',
+        'MedScore-LMS* (deepseek-r1:14b)',
+        'MedScore-LMS** (deepseek-r1:14b)'
     ]
 
     # Total column
-    totals = [4978, 3925, 2848, 1516, 2532, 860, 1209, 1204, 1288, 1027]
+    totals = [1204, 1204, 1288, 1288, 1027, 1027]
 
     # Claim quality columns
     counts_data = {
-        'Valid':                  [1463, 1258, 731,  950, 1291, 160, 930, 874, 892, 763],
-        'Unverifiable':           [273,  274,  197,  0,   171,  82,  0,   0,   4,   4],
-        'Hallucinated':           [311,  170,  113,  403, 230,  24,  124, 128, 50,  37],
-        'Incomplete':             [728,  600,  496,  98,  365,  467, 73,  46,  50,  49],
-        'Incorrectly-structured': [349,  378,  223,  0,   213,  56,  4,   7,   40,  36],
-        'Context-dependent':      [1398, 1126, 1055, 17,  204,  64,  72,  28,  87,  86],
-        'Redundant':              [452,  117,  31,   48,  58,   7,   6,   121, 165, 52]
+        'Valid': [900, 874, 893, 892, 738, 763],
+        'Unverifiable': [1, 0, 5, 4, 1, 4],
+        'Hallucinated': [100, 128, 48, 50, 23, 37],
+        'Incomplete': [104, 46, 94, 50, 64, 49],
+        'Incorrectly-structured': [2, 7, 78, 40, 48, 36],
+        'Context-dependent': [77, 28, 153, 87, 145, 86],
+        'Redundant': [20, 121, 17, 165, 8, 52]
     }
 
     df_counts = pd.DataFrame(counts_data, index=methods)
@@ -83,10 +85,10 @@ MedScore-LMS$**$ (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.6
                 fontweight='bold', color='#333333')
 
     # 5. Finalizing layout
-    ax.set_title('Automatic taxonomy profiling distribution', fontsize=18, fontweight='bold', pad=30)
+    ax.set_title('Ablation Study: Taxonomy Profiling with Normalization Stage', fontsize=18, fontweight='bold', pad=30)
     ax.set_xlabel('Percentage of Total Claims (%)', fontsize=12, labelpad=10)
-    ax.set_xlim(0, 115)  # Leave space to the right for the word "Total"
-    ax.legend(title='Claim quality Labels', bbox_to_anchor=(0.5, -0.1), loc='upper center', ncol=4, frameon=False,
+    ax.set_xlim(0, 115)
+    ax.legend(title='Claim Quality Labels', bbox_to_anchor=(0.5, -0.1), loc='upper center', ncol=4, frameon=False,
               fontsize=11)
     ax.invert_yaxis()
     ax.spines['top'].set_visible(False)
@@ -94,10 +96,13 @@ MedScore-LMS$**$ (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.6
     ax.grid(axis='x', linestyle='--', alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig('claim_quality_statistic.pdf', bbox_inches='tight')
-    plt.savefig('claim_quality_statistic.png', dpi=300, bbox_inches='tight')
+
+    # save file
+    file_name = 'ablation_claim_quality_statistic'
+    plt.savefig(f'{file_name}.pdf', bbox_inches='tight')
+    plt.savefig(f'{file_name}.png', dpi=300, bbox_inches='tight')
     print(f"Files were created: {os.getcwd()}")
 
 
 if __name__ == "__main__":
-    generate_claim_quality_chart()
+    generate_ablation_claim_quality_chart()
