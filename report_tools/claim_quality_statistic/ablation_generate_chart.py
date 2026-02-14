@@ -1,6 +1,7 @@
+import os
+
 import matplotlib.pyplot as plt
 import pandas as pd
-import os
 
 
 def generate_ablation_claim_quality_chart():
@@ -39,13 +40,13 @@ MedScore-LMS$**$ (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.6
 
     # Claim quality columns
     counts_data = {
-        'Valid': [900, 874, 893, 892, 738, 763],
-        'Unverifiable': [1, 0, 5, 4, 1, 4],
-        'Hallucinated': [100, 128, 48, 50, 23, 37],
-        'Incomplete': [104, 46, 94, 50, 64, 49],
-        'Incorrectly-structured': [2, 7, 78, 40, 48, 36],
-        'Context-dependent': [77, 28, 153, 87, 145, 86],
-        'Redundant': [20, 121, 17, 165, 8, 52]
+        'Valid':                  [900, 874, 893, 892, 738, 763],
+        'Unverifiable':           [1,   0,   5,   4,   1,   4],
+        'Hallucinated':           [100, 128, 48,  50,  23,  37],
+        'Incomplete':             [104, 46,  94,  50,  64,  49],
+        'Incorrectly-structured': [2,   7,   78,  40,  48,  36],
+        'Context-dependent':      [77,  28,  153, 87,  145, 86],
+        'Redundant':              [20,  121, 17,  165, 8,   52]
     }
 
     df_counts = pd.DataFrame(counts_data, index=methods)
