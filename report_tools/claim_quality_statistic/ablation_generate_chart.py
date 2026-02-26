@@ -27,12 +27,12 @@ MedScore-LMS$**$ (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.6
     """
     # 1. Data from Table
     methods = [
-        'MedScore-LMS* (ministral-3:14b)',
-        'MedScore-LMS** (ministral-3:14b)',
-        'MedScore-LMS* (phi4:14b)',
-        'MedScore-LMS** (phi4:14b)',
-        'MedScore-LMS* (deepseek-r1:14b)',
-        'MedScore-LMS** (deepseek-r1:14b)'
+        'MedScore-LMS× (ministral-3:14b)',
+        'MedScore-LMS✓ (ministral-3:14b)',
+        'MedScore-LMS× (phi4:14b)',
+        'MedScore-LMS✓ (phi4:14b)',
+        'MedScore-LMS× (deepseek-r1:14b)',
+        'MedScore-LMS✓ (deepseek-r1:14b)'
     ]
 
     # Total column
