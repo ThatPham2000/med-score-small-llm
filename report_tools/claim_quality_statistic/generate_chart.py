@@ -57,7 +57,8 @@ MedScore-LMS (deepseek-r1:14b) & 1027 & 763 (74.29\%) & 4 (0.39\%) & 37 (3.60\%)
     # 2. Set claim quality label colors
     colors = ['#27ae60', '#e74c3c', '#f39c12', '#3498db', '#9b59b6', '#d35400', '#7f8c8d']
 
-    fig, ax = plt.subplots(figsize=(16, 10))
+    # fig, ax = plt.subplots(figsize=(16, 10))
+    fig, ax = plt.subplots(figsize=(14, 8))
     df_pct.plot(kind='barh', stacked=True, color=colors, ax=ax, width=0.8, edgecolor='white', linewidth=0.5)
 
     # 3. Adding Percentage Labels
