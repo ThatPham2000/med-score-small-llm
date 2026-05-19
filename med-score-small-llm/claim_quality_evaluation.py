@@ -4,6 +4,7 @@ import re
 import time
 from typing import List, Dict, Any, Optional
 
+# import jsonlines
 import nest_asyncio
 from tqdm import tqdm
 
@@ -20,7 +21,7 @@ class ClaimQualityEvaluation(object):
             llm: LLM = None,
             is_only_classification: bool = False,
             random_state: int = 42,
-            batch_size: int = 16, #TODO(THAT): update it
+            batch_size: int = 32, #TODO(THAT): update it
     ):
         self.llm = llm
         self.is_only_classification = is_only_classification
@@ -49,6 +50,10 @@ class ClaimQualityEvaluation(object):
         """
         # Step 2: Initial Classification
         classified_claims = self.classify_claims(decompositions)
+
+        # Load existing classified_claims
+        # with jsonlines.open('/Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/classified_claims2.jsonl', 'r') as reader:
+        #     classified_claims = [item for item in reader.iter()]
         print(f"Classified claims: done, total={len(classified_claims)}")
 
         if self.is_only_classification:
@@ -98,7 +103,7 @@ class ClaimQualityEvaluation(object):
             # valid_claims = [c for c in reclassified_claims if c.get('claim_quality_type') == 'Valid']
 
             final_claims.extend(reclassified_claims)
-            time.sleep(2) # TODO(THAT): update it
+            time.sleep(0) # TODO(THAT): update it
 
         return final_claims
 
@@ -134,7 +139,7 @@ class ClaimQualityEvaluation(object):
         for batch in tqdm(chunker(messages, self.batch_size), desc="Classify claims process", total=n_iter):
             completions = asyncio.run(self.llm.batch_response(batch))
             all_completions.extend(completions)
-            time.sleep(3) # TODO(THAT): update it
+            time.sleep(0) # TODO(THAT): update it
 
         claim_quality_output = []
         for decomposition, completion in zip(decompositions, self.llm.normalize_llm_response(all_completions)):
