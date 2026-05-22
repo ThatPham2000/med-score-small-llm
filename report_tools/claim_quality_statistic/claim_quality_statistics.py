@@ -102,6 +102,11 @@ def calculate_statistics(
         elif norm_label == "redundant":
             stats["redundant"] += 1
         else:
+            print(f'raw_label "{raw_label}" not recognized.')
+            print(f'Normalized to "{norm_label}"')
+            print(f'id: {record["id"]}')
+            print(f'claim: {record["claim"]}')
+            print(f'claim id: {record["claim_id"]}')
             stats["unknown"] += 1
 
     return dict(stats)
