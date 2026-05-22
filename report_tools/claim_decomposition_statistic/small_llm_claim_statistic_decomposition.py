@@ -75,6 +75,7 @@ def calculate_metrics(data: List[Dict]) -> Dict[str, float]:
         claims_per_response.append(num_claims)
 
         if num_claims == 0:
+            print(f'No valid claims in {response_id}')
             zero_claim_responses += 1
 
     avg_claims_per_response = (
@@ -181,10 +182,10 @@ Examples:
     print("\n" + "=" * 60)
     print("VALID CLAIM DECOMPOSITION ANALYSIS RESULTS")
     print("=" * 60)
-    print(f"\nAverage number of VALID claims per response: {metrics['avg_claims_per_response']:.4f}")
-    print(f"Standard deviation (#valid_claims/response):  {metrics['std_claims_per_response']:.4f}")
-    print(f"Average number of VALID claims per sentence:  {metrics['avg_claims_per_sentence']:.4f}")
-    print(f"Standard deviation (#valid_claims/sentence): {metrics['std_claims_per_sentence']:.4f}")
+    print(f"\nAverage number of VALID claims per response: {metrics['avg_claims_per_response']:.2f}")
+    print(f"Standard deviation (#valid_claims/response):  {metrics['std_claims_per_response']:.2f}")
+    print(f"Average number of VALID claims per sentence:  {metrics['avg_claims_per_sentence']:.2f}")
+    print(f"Standard deviation (#valid_claims/sentence): {metrics['std_claims_per_sentence']:.2f}")
     print(f"Average 0-valid-claim rate per response:      {metrics['zero_claim_rate']:.2f}%")
 
     if args.verbose:

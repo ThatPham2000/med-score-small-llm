@@ -167,10 +167,10 @@ Examples:
     print("\n" + "="*60)
     print("DECOMPOSITION ANALYSIS RESULTS")
     print("="*60)
-    print(f"\nAverage number of claims per response: {metrics['avg_claims_per_response']:.4f}")
-    print(f"Standard deviation (#claims/response):  {metrics['std_claims_per_response']:.4f}")
-    print(f"Average number of claims per sentence:  {metrics['avg_claims_per_sentence']:.4f}")
-    print(f"Standard deviation (#claims/sentence): {metrics['std_claims_per_sentence']:.4f}")
+    print(f"\nAverage number of claims per response: {metrics['avg_claims_per_response']:.2f}")
+    print(f"Standard deviation (#claims/response):  {metrics['std_claims_per_response']:.2f}")
+    print(f"Average number of claims per sentence:  {metrics['avg_claims_per_sentence']:.2f}")
+    print(f"Standard deviation (#claims/sentence): {metrics['std_claims_per_sentence']:.2f}")
     print(f"Average 0-claim rate per response:      {metrics['zero_claim_rate']:.2f}%")
     
     if args.verbose:
