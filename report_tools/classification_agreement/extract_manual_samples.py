@@ -74,6 +74,6 @@ target_list = [
 ]
 
 if __name__ == '__main__':
-    input_file = "/Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/small_llm/ministral3_14b/small_llm_provided_claim_quality_evaluations.jsonl"
-    output_file = "/Users/that.phamvan/my_ws/master/med-score-small-llm/report_tools/classification_agreement/manual_samples.jsonl"
+    input_file = "/Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/dmm_small_llm_ministral3_askdocai_Llama-Guard12b_classification/small_llm_provided_claim_quality_evaluations.jsonl"
+    output_file = "/Users/that.phamvan/my_ws/master/med-score-small-llm/report_tools/classification_agreement/manual_samples_llama_guard12b.jsonl"
     filter_claims_by_list(input_file, output_file, target_list)
