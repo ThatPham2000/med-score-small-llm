@@ -86,9 +86,17 @@ def generate_combined_chart():
                     ax.text(x_pos, y_pos, label, ha='center', va='center',
                             fontsize=8, color='white', fontweight='bold')
 
-        # Gắn nhãn tổng số ở bên phải mỗi chart
+        # Gắn nhãn tổng số ở bên phải mỗi chart và xử lý riêng cho GPT-4o-mini bị khuyết data
         for k, total in enumerate(totals):
-            ax.text(102, k, f"N={total}", va='center', fontsize=9, color='#333333')
+            if methods[k] == 'MedScore (GPT-4o-mini)' and total == 0:
+                # Thay thế N=0 bằng dấu gạch ngang
+                ax.text(102, k, "—", va='center', fontsize=10, color='#333333', fontweight='bold')
+
+                # In dòng chữ "Not evaluated..." ngay chính giữa khu vực vẽ bar
+                ax.text(50, k, "— Not evaluated on this dataset —",
+                        ha='center', va='center', fontsize=10, color='gray', fontstyle='italic')
+            else:
+                ax.text(102, k, f"N={total}", va='center', fontsize=9, color='#333333')
 
         # Cấu hình thẩm mỹ cho từng subplot
         ax.set_title(dataset_name, fontsize=13, fontweight='bold', pad=10)
