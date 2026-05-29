@@ -262,7 +262,7 @@ if __name__ == '__main__':
         dataset = [item for item in reader.iter()]
 
     # use 100 record from dataset[100:200]
-    dataset = dataset[100:200] #TODO(THAT): uncomment it
+    dataset = dataset[0:100]
     print(f"len dataset: {len(dataset)}")
 
     # Handle provided evidence for 'provided' verification mode

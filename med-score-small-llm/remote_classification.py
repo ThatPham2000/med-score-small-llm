@@ -20,7 +20,7 @@ from verifier_internal import VerifierInternal
 from verifier_provided_evidence import VerifierProvidedEvidence
 
 
-def initialize_llm(llm_provider: str, model_name: str, server: Optional[str], openai_api_key: Optional[str]):
+def initialize_llm(llm_provider: str, model_name: str, server: Optional[str]):
     llm_provider = llm_provider.lower()
     if llm_provider == "ollama":
         if server is None:
@@ -30,12 +30,10 @@ def initialize_llm(llm_provider: str, model_name: str, server: Optional[str], op
             ollama_async_client=ollama.AsyncClient(host=server, verify=False)
         )
 
-    if llm_provider == "openai":
+    if llm_provider == "openapi":
         if server is None:
-            raise InvalidArgumentException("Server URL must be provided for OpenAI LLM provider")
-        if openai_api_key is None:
-            raise InvalidArgumentException("OpenAI API key must be provided for OpenAI LLM provider")
-        return LLMOpenAI(model_name=model_name, server_path=server, api_key=openai_api_key)
+            raise InvalidArgumentException("Server URL must be provided for OpenAPI LLM provider")
+        return LLMOpenAI(model_name=model_name, server_path=server)
 
     raise IllegalArgumentException(f"Unknown LLM provider: {llm_provider}")
 
@@ -44,11 +42,10 @@ def initialize_decomposer(
         decomposition_mode: str,
         decomposition_llm_provider: str,
         decomposition_model_name: str,
-        decomposition_server: Optional[str],
-        openai_api_key: Optional[str],
+        decomposition_server: Optional[str]
 ):
     mode = decomposition_mode.lower()
-    llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server, openai_api_key)
+    llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
 
     if mode == "small_llm":
         return DecomposerSmallLLM(llm=llm)
@@ -70,12 +67,10 @@ def initialize_claim_quality_evaluation(
         claim_quality_evaluation_model_name: str,
         claim_quality_evaluation_server: Optional[str],
         is_only_classification: bool = False,
-        openai_api_key: Optional[str] = None,
 ):
     llm = initialize_llm(claim_quality_evaluation_llm_provider, claim_quality_evaluation_model_name,
-                         claim_quality_evaluation_server, openai_api_key)
-    normalized_llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server,
-                                    openai_api_key)
+                         claim_quality_evaluation_server)
+    normalized_llm = initialize_llm(decomposition_llm_provider, decomposition_model_name, decomposition_server)
 
     return ClaimQualityEvaluation(llm=llm, is_only_classification=is_only_classification,
                                   normalized_llm=normalized_llm)
@@ -87,11 +82,10 @@ def initialize_verifier(
         verification_model_name: str,
         verification_server: Optional[str],
         provided_evidence: Optional[Dict[str, str]] = None,
-        openai_api_key: Optional[str] = None,
 ):
     """Initialize verifier with multiple modes support"""
     mode = verification_mode.lower()
-    llm = initialize_llm(verification_llm_provider, verification_model_name, verification_server, openai_api_key)
+    llm = initialize_llm(verification_llm_provider, verification_model_name, verification_server)
 
     if mode == "internal":
         return VerifierInternal(llm)
@@ -106,10 +100,10 @@ def initialize_verifier(
 class MedScoreSmallLLM(object):
     """
     Enhanced MedScore implementation with multiple modes support.
-    
+
     This class supports both traditional MedScore modes
     and enhanced small language model modes with:
-    
+
     1. Chain-of-thought prompting
     2. Multi-step reasoning processes
     3. Enhanced decomposition with reasoning steps
@@ -133,14 +127,12 @@ class MedScoreSmallLLM(object):
             claim_quality_evaluation_model_name: str = "llama3.2:3b",
             claim_quality_evaluation_server: Optional[str] = None,
             is_only_classification: bool = False,
-            openai_api_key: Optional[str] = None,
     ):
         self.decomposer = initialize_decomposer(
             decomposition_mode,
             decomposition_llm_provider,
             decomposition_model_name,
             decomposition_server,
-            openai_api_key,
         )
 
         self.verifier = initialize_verifier(
@@ -149,7 +141,6 @@ class MedScoreSmallLLM(object):
             verification_model_name,
             verification_server,
             provided_evidence,
-            openai_api_key,
         )
 
         self.claim_quality_evaluation = initialize_claim_quality_evaluation(
@@ -160,7 +151,6 @@ class MedScoreSmallLLM(object):
             claim_quality_evaluation_model_name,
             claim_quality_evaluation_server,
             is_only_classification,
-            openai_api_key,
         )
 
     def decompose(
@@ -206,13 +196,12 @@ def parse_args():
     parser.add_argument("--output_dir", required=True, type=str, help="Output directory for results")
     parser.add_argument("--decompose_only", action="store_true", help="Only run decomposition")
     parser.add_argument("--verify_only", action="store_true", help="Only run verification")
-    parser.add_argument("--openai_api_key", type=str, help="Input OPENAI API key")
 
     # Decomposition
     parser.add_argument("--decomposition_mode", type=str,
                         choices=["small_llm", "medscore", "factscore", "dndscore", "custom"],
                         default="small_llm", help="Decomposition mode")
-    parser.add_argument("--decomposition_llm_provider", type=str, choices=["ollama", "openai"],
+    parser.add_argument("--decomposition_llm_provider", type=str, choices=["ollama", "openapi"],
                         default="ollama", help="LLM provider for decomposition")
     parser.add_argument("--decomposition_model_name", type=str, default="gemma3:12b",
                         help="Model name for decomposition")
@@ -228,7 +217,7 @@ def parse_args():
     parser.add_argument("--is_only_classification", action="store_true")
     parser.add_argument("--valid_decomposition_input_file", type=str, default=None,
                         help="Path to valid decomposition input file")
-    parser.add_argument("--claim_quality_evaluation_llm_provider", type=str, choices=["ollama", "openai"],
+    parser.add_argument("--claim_quality_evaluation_llm_provider", type=str, choices=["ollama", "openapi"],
                         default="ollama", help="LLM provider for claim quality evaluation")
     parser.add_argument("--claim_quality_evaluation_model_name", type=str, default="gemma3:12b",
                         help="Model name for claim quality evaluation")
@@ -239,7 +228,7 @@ def parse_args():
     parser.add_argument("--verification_mode", type=str,
                         choices=["internal", "provided"],
                         default="internal_small_llm", help="Verification mode")
-    parser.add_argument("--verification_llm_provider", type=str, choices=["ollama", "openai"],
+    parser.add_argument("--verification_llm_provider", type=str, choices=["ollama", "openapi"],
                         default="ollama", help="LLM provider for verification")
     parser.add_argument("--verification_model_name", type=str, default="gemma3:12b",
                         help="Model name for verification")
@@ -262,7 +251,7 @@ if __name__ == '__main__':
         dataset = [item for item in reader.iter()]
 
     # use 100 record from dataset[100:200]
-    dataset = dataset[100:200] #TODO(THAT): uncomment it
+    dataset = dataset[100:200]
     print(f"len dataset: {len(dataset)}")
 
     # Handle provided evidence for 'provided' verification mode
@@ -295,121 +284,12 @@ if __name__ == '__main__':
         claim_quality_evaluation_model_name=args.claim_quality_evaluation_model_name,
         claim_quality_evaluation_server=args.claim_quality_evaluation_server,
         is_only_classification=args.is_only_classification,
-        openai_api_key=args.openai_api_key,
     )
 
-    decompositions = []
-    if args.decompose_only:
-        decompose_start_time = time.time()
-        print(f"Running decomposition with {args.decomposition_mode} mode...")
-        decompositions = scorer.decompose(dataset)
-        with jsonlines.open(decomposition_output_file, 'w') as writer:
-            writer.write_all(decompositions)
-        decompose_end_time = time.time()
-        print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
-        print(f"Decomposition completed. Results saved to {decomposition_output_file}")
-        exit(0)
+    # Load existing decompositions
+    with jsonlines.open(args.decomposition_input_file, 'r') as reader:
+        decompositions = [item for item in reader.iter()]
 
-    if args.evaluate_claim_quality_only:
-        # Load existing decompositions
-        with jsonlines.open(args.decomposition_input_file, 'r') as reader:
-            decompositions = [item for item in reader.iter()]
-
-        # Evaluate claim quality
-        time_claim_quality_start = time.time()
-        # Add context to each decomposition
-        decompositions_with_context = []
-        for item in decompositions:
-            for data_item in dataset:
-                if data_item["id"] == item["id"]:
-                    item["context"] = data_item["response"]
-                    break
-            decompositions_with_context.append(item)
-        claim_quality_decompositions = scorer.evaluate_claim_quality(decompositions_with_context)
-        claim_quality_output_file = os.path.join(args.output_dir, f"{mode_prefix}_claim_quality_evaluations.jsonl")
-        with jsonlines.open(claim_quality_output_file, 'w') as writer:
-            writer.write_all(claim_quality_decompositions)
-        time_claim_quality_end = time.time()
-        print(f"Claim quality evaluation time: {time_claim_quality_end - time_claim_quality_start:.2f} seconds")
-        print(f"Claim quality evaluation completed. Results saved to {claim_quality_output_file}")
-        exit(0)
-
-    if args.verify_only:
-        # Load existing decompositions
-        with jsonlines.open(args.valid_decomposition_input_file, 'r') as reader:
-            decompositions = [item for item in reader.iter()]
-        print(f"len decompositions: {len(decompositions)}")
-
-        verification_start_time = time.time()
-        # Process verification
-        print(f"Running verification with {args.verification_mode} mode...")
-        print(f"len decompositions: {len(decompositions)}")
-        verifications = scorer.verify(decompositions)
-        with jsonlines.open(verification_output_file, 'w') as writer:
-            writer.write_all(verifications)
-        verification_end_time = time.time()
-        print(f"Verification time: {verification_end_time - verification_start_time:.2f} seconds")
-
-        # Combine results
-        combined_output = {
-            d["id"]: {
-                "id": d["id"],
-                "claims": []
-            } for d in decompositions
-        }
-        for verification in verifications:
-            claim_info = {
-                k: v for k, v in verification.items() if k not in {"id", "sentence_id", "claim_id"}
-            }
-            combined_output[verification['id']]['claims'].append(claim_info)
-
-        # Aggregate scores
-        for idx in combined_output:
-            claim_scores = [claim['score'] for claim in combined_output[idx]['claims']]
-            if len(claim_scores) == 0:
-                combined_output[idx]["score"] = None
-            else:
-                combined_output[idx]["score"] = sum(claim_scores) / len(claim_scores)
-
-        combined_output = [v for k, v in combined_output.items()]
-        with jsonlines.open(output_file, 'w') as writer:
-            writer.write_all(combined_output)
-
-        # Calculate and display final metrics
-        scores = [item['score'] for item in combined_output if item['score'] is not None]
-        final_score = sum(scores) / len(scores) if scores else None
-
-        print(f"\n=== MedScore Results ({args.decomposition_mode} + {args.verification_mode}) ===")
-        print(f"Total responses evaluated: {len(combined_output)}")
-        print(f"Responses with valid scores: {len(scores)}")
-        print(f"Final MedScore: {final_score:.4f}")
-        print(f"Results saved to: {output_file}")
-
-        # Additional metrics for comparison
-        if scores:
-            import statistics
-
-            print(f"Score statistics:")
-            print(f"  Mean: {statistics.mean(scores):.4f}")
-            print(f"  Median: {statistics.median(scores):.4f}")
-            if len(scores) > 1:
-                print(f"  Std Dev: {statistics.stdev(scores):.4f}")
-            print(f"  Min: {min(scores):.4f}")
-            print(f"  Max: {max(scores):.4f}")
-        exit(0)
-
-    # Full flow: decompose -> filter valid -> verify
-    # ==========Decomposition==========
-    decompose_start_time = time.time()
-    print(f"Running decomposition with {args.decomposition_mode} mode...")
-    decompositions = scorer.decompose(dataset)
-    with jsonlines.open(decomposition_output_file, 'w') as writer:
-        writer.write_all(decompositions)
-    decompose_end_time = time.time()
-    print(f"Decomposition time: {decompose_end_time - decompose_start_time:.2f} seconds")
-    print(f"Decomposition completed. Results saved to {decomposition_output_file}")
-
-    # ==========Claim Quality Evaluation==========
     # Evaluate claim quality
     time_claim_quality_start = time.time()
     # Add context to each decomposition
@@ -427,65 +307,4 @@ if __name__ == '__main__':
     time_claim_quality_end = time.time()
     print(f"Claim quality evaluation time: {time_claim_quality_end - time_claim_quality_start:.2f} seconds")
     print(f"Claim quality evaluation completed. Results saved to {claim_quality_output_file}")
-
-    # ===========Verification==========
-    decompositions = [d for d in claim_quality_decompositions]
-    print(f"len decompositions: {len(decompositions)}")
-
-    verification_start_time = time.time()
-    # Process verification
-    print(f"Running verification with {args.verification_mode} mode...")
-    print(f"len decompositions: {len(decompositions)}")
-    verifications = scorer.verify(decompositions)
-    with jsonlines.open(verification_output_file, 'w') as writer:
-        writer.write_all(verifications)
-    verification_end_time = time.time()
-    print(f"Verification time: {verification_end_time - verification_start_time:.2f} seconds")
-
-    # Combine results
-    combined_output = {
-        d["id"]: {
-            "id": d["id"],
-            "claims": []
-        } for d in decompositions
-    }
-    for verification in verifications:
-        claim_info = {
-            k: v for k, v in verification.items() if k not in {"id", "sentence_id", "claim_id"}
-        }
-        combined_output[verification['id']]['claims'].append(claim_info)
-
-    # Aggregate scores
-    for idx in combined_output:
-        claim_scores = [claim['score'] for claim in combined_output[idx]['claims']]
-        if len(claim_scores) == 0:
-            combined_output[idx]["score"] = None
-        else:
-            combined_output[idx]["score"] = sum(claim_scores) / len(claim_scores)
-
-    combined_output = [v for k, v in combined_output.items()]
-    with jsonlines.open(output_file, 'w') as writer:
-        writer.write_all(combined_output)
-
-    # Calculate and display final metrics
-    scores = [item['score'] for item in combined_output if item['score'] is not None]
-    final_score = sum(scores) / len(scores) if scores else None
-
-    print(f"\n=== MedScore Results ({args.decomposition_mode} + {args.verification_mode}) ===")
-    print(f"Total responses evaluated: {len(combined_output)}")
-    print(f"Responses with valid scores: {len(scores)}")
-    print(f"Final MedScore: {final_score:.4f}")
-    print(f"Results saved to: {output_file}")
-
-    # Additional metrics for comparison
-    if scores:
-        import statistics
-
-        print(f"Score statistics:")
-        print(f"  Mean: {statistics.mean(scores):.4f}")
-        print(f"  Median: {statistics.median(scores):.4f}")
-        if len(scores) > 1:
-            print(f"  Std Dev: {statistics.stdev(scores):.4f}")
-        print(f"  Min: {min(scores):.4f}")
-        print(f"  Max: {max(scores):.4f}")
     exit(0)

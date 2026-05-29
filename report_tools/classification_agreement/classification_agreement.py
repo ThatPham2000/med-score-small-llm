@@ -2,7 +2,7 @@ import json
 from sklearn.metrics import cohen_kappa_score
 
 
-def load_predictions(file_path):
+def load_predictions(file_path, check_key):
     """
     Đọc file JSONL và trả về một dictionary.
     Key: id_sentenceId_claimId (để đảm bảo map đúng claim giữa 2 models)
@@ -21,15 +21,15 @@ def load_predictions(file_path):
             claim_id = data.get('claim_id')
             unique_key = f"{doc_id}_{sent_id}_{claim_id}"
 
-            predictions[unique_key] = data.get('claim_quality_type')
+            predictions[unique_key] = data.get(check_key)
 
     return predictions
 
 
 def evaluate_model_agreement(file1_path, file2_path):
     """So sánh độ đồng thuận giữa 2 file kết quả."""
-    model1_preds = load_predictions(file1_path)
-    model2_preds = load_predictions(file2_path)
+    model1_preds = load_predictions(file1_path, "manual_claim_quality_type")
+    model2_preds = load_predictions(file2_path, "claim_quality_type")
 
     # Tìm các claim tồn tại chung trong cả 2 file
     common_keys = set(model1_preds.keys()).intersection(set(model2_preds.keys()))
@@ -50,6 +50,8 @@ def evaluate_model_agreement(file1_path, file2_path):
 
         if l1 == l2:
             exact_matches += 1
+            # print(f"{key}: {l1} vs. {l2}")
+        else:
             print(f"{key}: {l1} vs. {l2}")
 
 
@@ -89,6 +91,6 @@ def evaluate_model_agreement(file1_path, file2_path):
 # evaluate_model_agreement('model_1_output.jsonl', 'model_2_output.jsonl')
 
 if __name__ == '__main__':
-    file1 ="/Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/dmm_small_llm_ministral3_askdocai_gpt5_classification/small_llm_provided_claim_quality_evaluations.jsonl"
-    file2 ="/Users/that.phamvan/my_ws/master/med-score-small-llm/med-score-small-llm/small_llm/ministral3_14b/small_llm_provided_claim_quality_evaluations.jsonl"
+    file1 ="/Users/that.phamvan/my_ws/master/med-score-small-llm/report_tools/classification_agreement/manual_claim_quality_evaluations.jsonl"
+    file2 ="/Users/that.phamvan/my_ws/master/med-score-small-llm/report_tools/classification_agreement/manual_samples_ministral3_8b.jsonl"
     evaluate_model_agreement(file1, file2)

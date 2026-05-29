@@ -21,7 +21,7 @@ class ClaimQualityEvaluation(object):
             llm: LLM = None,
             is_only_classification: bool = False,
             random_state: int = 42,
-            batch_size: int = 32, #TODO(THAT): update it
+            batch_size: int = 8, #TODO(THAT): update it
     ):
         self.llm = llm
         self.is_only_classification = is_only_classification

@@ -114,14 +114,15 @@ def generate_combined_chart():
         # Xóa legend mặc định của từng subplot
         ax.get_legend().remove()
 
-    # 5. Tạo một Legend chung đặt dưới cùng (Tiết kiệm diện tích)
-    handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, bbox_to_anchor=(0.5, -0.05), loc='upper center',
-               ncol=4, frameon=False, fontsize=11)
+    # 5. Căn chỉnh Layout và Legend chung
+    plt.tight_layout()
+    # Chừa chính xác 15% diện tích bên dưới cho legend, và giảm khoảng cách 3 cột
+    plt.subplots_adjust(bottom=0.2, wspace=0.05)
 
-    # Căn chỉnh layout
-    plt.subplots_adjust(wspace=0.08)  # Giảm khoảng cách giữa 3 cột
-    plt.tight_layout(rect=[0, 0.08, 1, 1])  # Chừa không gian cho Legend chung ở dưới
+    handles, labels = axes[0].get_legend_handles_labels()
+    # Đặt legend nằm gọn trong vùng không gian bottom vừa chừa ra
+    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.0),
+               ncol=4, frameon=False, fontsize=11)
 
     # Lưu file
     plt.savefig('combined_claim_quality_statistic.pdf', bbox_inches='tight')
