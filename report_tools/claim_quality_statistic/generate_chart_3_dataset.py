@@ -52,11 +52,12 @@ def generate_combined_chart():
         }
     }
 
-    # Màu sắc tiêu chuẩn cho phân loại
     colors = ['#27ae60', '#e74c3c', '#f39c12', '#3498db', '#9b59b6', '#d35400', '#7f8c8d']
 
-    # 3. Khởi tạo Figure gồm 1 hàng x 3 cột. Trục Y dùng chung (sharey=True)
-    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(15, 5.5), sharey=True)
+    # 3. Bố cục dọc: 3 hàng x 1 cột, dùng chung trục X.
+    #    Kích thước ~ bề rộng vùng chữ A4 (15.5 cm ≈ 6.1 in) để chèn vào Word
+    #    ở 100% mà không bị thu nhỏ -> cỡ chữ trong hình giữ đúng như khai báo.
+    fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(6.3, 9.6), sharex=True)
 
     for i, (dataset_name, data) in enumerate(datasets_data.items()):
         ax = axes[i]
@@ -67,66 +68,51 @@ def generate_combined_chart():
         safe_totals = [t if t > 0 else 1 for t in totals]
         df_pct = df_counts.div(safe_totals, axis=0) * 100
 
-        # Vẽ bar chart
-        df_pct.plot(kind='barh', stacked=True, color=colors, ax=ax, width=0.8, edgecolor='white', linewidth=0.5)
+        df_pct.plot(kind='barh', stacked=True, color=colors, ax=ax, width=0.8,
+                    edgecolor='white', linewidth=0.5)
 
-        # 4. Gắn nhãn phần trăm bên trong thanh bar (Rút gọn để tiết kiệm diện tích)
+        # 4. Nhãn % bên trong thanh (chỉ hiện khi > 5% để không chồng chữ)
         for j, col in enumerate(df_counts.columns):
             for k, method in enumerate(methods):
                 patch = ax.patches[j * len(methods) + k]
                 width = patch.get_width()
-
-                # Chỉ in % nếu vùng đó > 4% để tránh rối mắt trên giấy
-                if width > 4.0:
+                if width > 5.0:
                     x_pos = patch.get_x() + width / 2
                     y_pos = patch.get_y() + patch.get_height() / 2
+                    ax.text(x_pos, y_pos, f"{width:.0f}%", ha='center', va='center',
+                            fontsize=7, color='white', fontweight='bold')
 
-                    # Bỏ phần thập phân để label ngắn hơn (vd: 29% thay vì 29.39%)
-                    label = f"{width:.0f}%"
-                    ax.text(x_pos, y_pos, label, ha='center', va='center',
-                            fontsize=8, color='white', fontweight='bold')
-
-        # Gắn nhãn tổng số ở bên phải mỗi chart và xử lý riêng cho GPT-4o-mini bị khuyết data
+        # Nhãn tổng số bên phải; xử lý GPT-4o-mini không có dữ liệu
         for k, total in enumerate(totals):
             if methods[k] == 'MedScore (GPT-4o-mini)' and total == 0:
-                # Thay thế N=0 bằng dấu gạch ngang
-                ax.text(102, k, "—", va='center', fontsize=10, color='#333333', fontweight='bold')
-
-                # In dòng chữ "Not evaluated..." ngay chính giữa khu vực vẽ bar
+                ax.text(101.5, k, "—", va='center', fontsize=8, color='#333333', fontweight='bold')
                 ax.text(50, k, "— Not evaluated on this dataset —",
-                        ha='center', va='center', fontsize=10, color='gray', fontstyle='italic')
+                        ha='center', va='center', fontsize=8, color='gray', fontstyle='italic')
             else:
-                ax.text(102, k, f"N={total}", va='center', fontsize=9, color='#333333')
+                ax.text(101.5, k, f"N={total}", va='center', fontsize=7.5, color='#333333')
 
-        # Cấu hình thẩm mỹ cho từng subplot
-        ax.set_title(dataset_name, fontsize=13, fontweight='bold', pad=10)
-        ax.set_xlabel('Percentage (%)', fontsize=11)
-        ax.set_xlim(0, 125)  # Nới rộng trục X để chứa text N=...
-
-        if i == 0:
-            ax.invert_yaxis()  # Chỉ cần lật trục Y ở chart đầu tiên do sharey=True
-            ax.set_ylabel('')  # Bỏ chữ "None" ở trục Y
-
+        ax.set_title(dataset_name, fontsize=10, fontweight='bold', pad=4)
+        ax.set_xlim(0, 115)
+        ax.set_xticks(range(0, 101, 20))
+        ax.invert_yaxis()           # mỗi subplot có trục Y riêng nên lật từng cái
+        ax.set_ylabel('')
+        ax.tick_params(axis='y', labelsize=8)
+        ax.tick_params(axis='x', labelsize=8)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.grid(axis='x', linestyle='--', alpha=0.4)
-
-        # Xóa legend mặc định của từng subplot
         ax.get_legend().remove()
 
-    # 5. Căn chỉnh Layout và Legend chung
-    plt.tight_layout()
-    # Chừa chính xác 15% diện tích bên dưới cho legend, và giảm khoảng cách 3 cột
-    plt.subplots_adjust(bottom=0.2, wspace=0.05)
+    axes[-1].set_xlabel('Percentage (%)', fontsize=9)
 
+    # 5. Legend chung ở dưới cùng
     handles, labels = axes[0].get_legend_handles_labels()
-    # Đặt legend nằm gọn trong vùng không gian bottom vừa chừa ra
+    fig.tight_layout(rect=(0, 0.06, 1, 1), h_pad=1.2)
     fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(0.5, 0.0),
-               ncol=4, frameon=False, fontsize=11)
+               ncol=4, frameon=False, fontsize=8, handlelength=1.2, columnspacing=1.0)
 
-    # Lưu file
-    plt.savefig('combined_claim_quality_statistic.pdf', bbox_inches='tight')
-    plt.savefig('combined_claim_quality_statistic.png', dpi=300, bbox_inches='tight')
+    plt.savefig('combined_claim_quality_statistic_vertical.pdf', bbox_inches='tight')
+    plt.savefig('combined_claim_quality_statistic_vertical.png', dpi=300, bbox_inches='tight')
     print(f"Files were created successfully in {os.getcwd()}")
 
 
