@@ -1,0 +1,63 @@
+{
+  "n_runs": 100,
+  "n_claims": 10,
+  "parse_failed_count": 0,
+  "parse_failed": [],
+  "raw_identical_all_runs": 0,
+  "label_identical_all_runs": 7,
+  "p_max": {
+    "mean": 0.935,
+    "std": 0.1207,
+    "min": 0.7,
+    "max": 1.0
+  },
+  "entropy_bits": {
+    "mean": 0.2511,
+    "std": 0.4567,
+    "min": -0.0,
+    "max": 1.2639
+  },
+  "fleiss_kappa_across_runs": 0.6498,
+  "valid_rate_per_run": {
+    "mean": 0.83,
+    "std": 0.0595,
+    "min": 0.7,
+    "max": 1.0
+  },
+  "label_share_per_run": {
+    "Context-dependent": {
+      "mean": 0.006,
+      "std": 0.0239,
+      "min": 0.0,
+      "max": 0.1
+    },
+    "Hallucinated": {
+      "mean": 0.149,
+      "std": 0.0674,
+      "min": 0.0,
+      "max": 0.3
+    },
+    "Incomplete": {
+      "mean": 0.015,
+      "std": 0.0359,
+      "min": 0.0,
+      "max": 0.1
+    },
+    "Valid": {
+      "mean": 0.83,
+      "std": 0.0595,
+      "min": 0.7,
+      "max": 1.0
+    }
+  },
+  "human_agreement": {
+    "n_claims_with_human_label": 10,
+    "per_run": {
+      "mean": 0.609,
+      "std": 0.0712,
+      "min": 0.5,
+      "max": 0.7
+    },
+    "majority_vote": 0.6
+  }
+}
